@@ -34,6 +34,7 @@
 - [ ] Mejorar ranking: habilidades obligatorias vs deseables, incompatibilidades duras y explicaciones.
 - [x] Dashboard rápido: caché de puntajes (~0,34 s → ~0,02 s).
 - [x] API pública de Get on Board (opcional, desde Configuración): ofertas técnicas elegibles desde Chile; compatibles 6 → 38 por pasada (10 peticiones). *(docs/GETONBRD_API.md)*
+- [x] Elegibilidad geográfica explícita (compatible / por confirmar / incompatible) con metadatos de la fuente; sin bonificación para lo no confirmado. *(docs/GETONBRD_API.md)*
 - [ ] Himalayas (remotos elegibles desde Chile): diseño listo en docs/HIMALAYAS.md, sin implementar.
 - [ ] Otros conectores (solo endpoints permitidos), intervalos, backoff y robots/ToS por plataforma. *(docs/FUENTES.md)*
 - [ ] Pruebas con fixtures reales anonimizados y análisis de duplicados entre fuentes.

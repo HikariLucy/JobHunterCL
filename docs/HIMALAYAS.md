@@ -31,7 +31,7 @@ Fecha: 2026-10-21. Requisito previo cumplido: el conector de la API de Get on Bo
 | `url` | `applicationLink` sin modificar. Identidad = `job_id(applicationLink)`. |
 | Atribución | Nueva tabla aditiva `job_attribution(job_id, source_name, source_url, expires_at)` con el enlace a la oferta en Himalayas (`guid` o `companies/{companySlug}/jobs/{slug}`; confirmar con una respuesta real). Respeta la regla de migraciones (solo tablas nuevas). |
 | `company`, `title` | `companyName`, `title` en texto plano. |
-| `location` | Sin `locationRestrictions` → `Remoto (mundial)`; si incluye Chile → `Remoto (incluye Chile)`; en otro caso, la lista de países, que el matching marcará como fuera de zona. |
+| `location` y `geo` | `geo.countries` = `locationRestrictions` (países explícitos) → `matching.eligibility()`: con Chile → «compatible»; sin Chile → «incompatible». Sin restricciones **solo** si la API lo declara explícitamente como mundial (`worldwide`) → «compatible»; si el campo falta o es ambiguo → «desconocida» y `Remoto (elegibilidad para Chile por confirmar)` (criterio de M1.3: nunca afirmar elegibilidad sin evidencia). |
 | Huso horario | `timezoneRestrictions` lejos de UTC−3/−4 → advertencia en el texto (Chile). |
 | Cabecera | `Nivel:` Entry-level → `Junior`; Mid-level → `Semi Senior`; Senior → `Senior`; Manager/Director/Executive → `Expert`. `Jornada:` según `employmentType` (Intern → `Práctica/Internship`). `Categoría:` solo si `parentCategories` se corresponde **sin ambigüedad** con una categoría técnica del feed (la tabla se arma con respuestas reales, no por suposición); si no, sin categoría. `Renta:` `minSalary`–`maxSalary` `currency`/`salaryPeriod`. |
 | Cuerpo | `description` (HTML saneado) → texto plano; `excerpt` si falta la descripción. |

@@ -36,7 +36,8 @@
 | `services/jobs.py` | Puntuar (reutiliza `matching.evaluate`), filtrar, actualizar estado/nota e historial. |
 | `services/search.py` | Búsqueda con candado, espera mínima por fuente, reintentos con backoff y registro en `scan_runs`. |
 | `services/scheduler.py` | Bucle asyncio cada 60 s; ejecuta si vence el intervalo configurado (nunca menor que el mínimo de las fuentes). |
-| `services/backup.py` | Exportar/importar `jobhuntercl-backup-v1` (+ `status_history`, validado antes de escribir, sin duplicados ni entradas huérfanas), copia de seguridad antes de importar. |
+| `services/backup.py` | Exportar/importar `jobhuntercl-backup-v1` (+ `status_history` y `job_geo`, validados antes de escribir, sin duplicados ni entradas huérfanas), copia de seguridad antes de importar. |
+| `services/geo.py` | Metadatos geográficos por oferta (`job_geo`) y combinación de evidencia entre fuentes. |
 | `cv_contracts.py` | Contratos de la futura integración de CV (sin implementación). |
 
 ### Endpoints
@@ -45,7 +46,7 @@
 |---|---|---|
 | GET | `/api/health` | Estado, versión, esquema |
 | GET | `/api/dashboard` | Totales, nuevas coincidencias, embudo, estado de búsqueda |
-| GET | `/api/jobs?status=&min_score=&q=&source=&sort=&limit=&offset=` | Ofertas puntuadas con motivos |
+| GET | `/api/jobs?status=&min_score=&q=&source=&sort=&eligibility=&limit=&offset=` | Ofertas puntuadas con motivos y `eligibility` (compatible / desconocida / incompatible, con evidencia) |
 | GET | `/api/jobs/sources` | Fuentes presentes en la base |
 | GET/PATCH | `/api/jobs/{id}` | Detalle / cambiar estado o nota |
 | GET | `/api/jobs/{id}/history` | Historial de estados |
@@ -62,7 +63,7 @@ Documentación interactiva: `http://127.0.0.1:8765/api/docs`.
 ### Base de datos
 
 Tablas del MVP (no se modifican): `jobs`, `settings`.
-Tablas añadidas en el esquema 1: `status_history`, `scan_runs`.
+Tablas añadidas en el esquema 1: `status_history`, `scan_runs`. Esquema 2: `job_geo` (modalidad remota y países informados por la fuente, para la elegibilidad geográfica).
 `settings.last_scan` se comparte con Streamlit, así ambas interfaces respetan la misma espera mínima.
 
 Política de migraciones: nunca `DROP`/`RENAME`/`ALTER ... DROP`; cada versión nueva añade un elemento a `MIGRATIONS` y una prueba con una base «heredada».

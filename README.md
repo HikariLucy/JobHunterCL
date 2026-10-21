@@ -58,7 +58,7 @@ Copia `.env.example` a `.env`:
 ## Secciones
 
 - **Dashboard:** nuevas coincidencias, embudo de postulaciones, estado de las búsquedas.
-- **Explorar ofertas:** búsqueda, filtros, puntaje explicado, enlace al original, estado y notas.
+- **Explorar ofertas:** búsqueda, filtros, puntaje explicado, enlace al original, estado y notas. Cada oferta indica si es **elegible** desde tus zonas, si su elegibilidad está **por confirmar** (p. ej. remotas restringidas a países que la fuente no informa; siguen visibles y se filtran con «Elegibilidad → Por confirmar») o si está **fuera de tus zonas**. «Remoto» en tus ubicaciones es una modalidad deseada, no un lugar.
 - **Seguimiento:** postulaciones por estado, notas e historial de cambios.
 - **Mi perfil:** cargos, habilidades, ubicaciones, experiencia, idiomas y preferencias. «Nivel buscado» ajusta la puntuación (vacío = nivel inicial: penaliza Senior y, en menor medida, Semi Senior).
 - **Configuración:** fuentes, frecuencia de búsqueda, registro de ejecuciones, respaldo/importación.
