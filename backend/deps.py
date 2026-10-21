@@ -1,0 +1,30 @@
+"""Dependencias FastAPI compartidas por los routers."""
+from __future__ import annotations
+import json
+from typing import Iterator
+
+from fastapi import Depends, HTTPException, Request
+
+from jobhunter.config import load_profile
+
+from . import db as dbmod
+from .settings import AppSettings
+
+
+def get_settings(request: Request) -> AppSettings:
+    return request.app.state.settings
+
+
+def get_db(settings: AppSettings = Depends(get_settings)) -> Iterator:
+    db = dbmod.connect(settings.db_path)
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def get_profile(settings: AppSettings = Depends(get_settings)) -> dict:
+    try:
+        return load_profile(settings.profile_path)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise HTTPException(500, f"No se pudo leer el perfil local: {exc}") from exc

@@ -21,9 +21,9 @@ def canonical(url: str) -> str:
     return urlunsplit((p.scheme.lower(), p.netloc.lower(), p.path.rstrip("/") or "/", urlencode(q), ""))
 
 
-def connection(path: Path = DB_PATH):
+def connection(path: Path = DB_PATH, check_same_thread: bool = True):
     path.parent.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(path)
+    db = sqlite3.connect(path, check_same_thread=check_same_thread)
     db.row_factory = sqlite3.Row
     db.execute("""CREATE TABLE IF NOT EXISTS jobs (
         id TEXT PRIMARY KEY, source TEXT NOT NULL, title TEXT NOT NULL,
