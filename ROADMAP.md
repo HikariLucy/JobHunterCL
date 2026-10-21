@@ -21,7 +21,9 @@
 - [x] Lanzador único Windows/Ubuntu con cierre limpio (verificado en Windows 10).
 - [x] Contratos de integración de CV (sin implementación).
 - [ ] Validación de paridad por el usuario con datos reales → retirar Streamlit.
-- [ ] Smoke test en Ubuntu y búsqueda real con red desde el panel nuevo.
+- [x] Búsqueda real con red desde el panel nuevo (Get on Board, Windows 10, 2026-10-21).
+- [ ] Instalación desde cero con el BAT (bloqueada por disco lleno en la validación).
+- [ ] Smoke test en Ubuntu y primera ejecución de CI en GitHub.
 - [ ] Importar historial de estados desde respaldos.
 
 ## M1 · Búsqueda adaptada a Chile
