@@ -152,18 +152,79 @@ def location_terms(profile: dict) -> list[str]:
     return list(dict.fromkeys(terms))
 
 
+# Solo indican trabajo a distancia, no un lugar. «Híbrido»/«presencial» sí van con lugares.
+REMOTE_ONLY_WORDS = ("remoto", "remote", "anywhere", "teletrabajo")
+_MODALITY_SUFFIX = re.compile(r"\((?:hibrido|hybrid|presencial|on-site|onsite)\)")
+
+
+def place_terms(profile: dict) -> list[str]:
+    """Zonas geográficas del perfil; «remote/remoto» es una modalidad deseada, no un lugar."""
+    return [t for t in location_terms(profile) if t not in REMOTE_ONLY_WORDS]
+
+
 def is_place_list(location: str) -> bool:
-    """Ubicación con lugares concretos (no remota ni desconocida)."""
-    return bool(location) and not any(contains(location, w) for w in REMOTE_WORDS + _UNKNOWN_LOCATION)
+    """Ubicación con lugares concretos (no remota ni desconocida); admite «(híbrido)»."""
+    location = _MODALITY_SUFFIX.sub(" ", norm(location))
+    return bool(location.strip()) and not any(contains(location, w) for w in REMOTE_ONLY_WORDS + _UNKNOWN_LOCATION)
+
+
+def residency_mentions(text: str) -> list[str]:
+    """Lugares de residencia exigidos explícitamente en el texto («solo residentes en X»…)."""
+    return [m.group(1).split(" para ")[0].strip(" ,")[:60] for m in _RESTRICTION.finditer(text)]
 
 
 def residency_restriction(text: str, loc_terms: list[str]) -> str | None:
     """Lugar exigido para residir si es ajeno a las zonas del perfil; None si no hay o es compatible."""
-    for m in _RESTRICTION.finditer(text):
-        place = m.group(1).split(" para ")[0].strip(" ,")
+    for place in residency_mentions(text):
         if not any(contains(place, x) for x in loc_terms):
-            return place[:60]
+            return place
     return None
+
+
+COMPATIBLE, UNKNOWN, INCOMPATIBLE = "compatible", "desconocida", "incompatible"
+_US_ONLY = ("united states only", "us only", "usa only", "canada only")
+
+
+def eligibility(job: dict, profile: dict) -> dict:
+    """Elegibilidad geográfica de la oferta para las zonas del perfil.
+
+    Devuelve {"status": compatible|desconocida|incompatible, "evidence": texto, "basis": origen}.
+    Prioridad: restricción explícita en el texto > metadatos estructurados de la fuente
+    (`job["geo"]`: modality, countries) > texto de ubicación. Sin evidencia suficiente el
+    resultado es «desconocida»: la oferta sigue visible para revisarla a mano.
+    """
+    zones = place_terms(profile)
+    if not zones:
+        return {"status": UNKNOWN, "evidence": "el perfil no define zonas geográficas", "basis": "perfil"}
+    location = norm(job.get("location", ""))
+    body = norm(job.get("description", ""))
+    shown = str(job.get("location", ""))[:80]
+    if any(contains(location, x) for x in _US_ONLY):
+        return {"status": INCOMPATIBLE, "evidence": f"ubicación: {shown}", "basis": "texto"}
+    mentions = residency_mentions(body)
+    if any(not any(contains(p, z) for z in zones) for p in mentions):
+        place = next(p for p in mentions if not any(contains(p, z) for z in zones))
+        return {"status": INCOMPATIBLE, "evidence": f"exige residir en {place}", "basis": "texto"}
+    geo = job.get("geo") or {}
+    countries = [str(c) for c in geo.get("countries") or [] if str(c).strip()]
+    if countries:
+        listed = ", ".join(countries)[:80]
+        ok = any(contains(norm(c), z) for c in countries for z in zones)
+        return {"status": COMPATIBLE if ok else INCOMPATIBLE, "evidence": f"países informados: {listed}",
+                "basis": geo.get("evidence") or "metadatos"}
+    if geo.get("modality") == "fully_remote":
+        return {"status": COMPATIBLE, "evidence": "remoto sin restricción de país", "basis": "metadatos"}
+    if geo.get("modality"):
+        return {"status": UNKNOWN, "evidence": "remoto restringido a países que la fuente no informa"
+                if geo["modality"] == "remote_local" else "la fuente no informa el país", "basis": "metadatos"}
+    if mentions:  # todas las menciones son compatibles (p. ej. «must be based in Latin America»)
+        return {"status": COMPATIBLE, "evidence": f"exige residir en {mentions[0]}", "basis": "texto"}
+    if is_place_list(location):
+        ok = any(contains(location, z) for z in zones)
+        return {"status": COMPATIBLE if ok else INCOMPATIBLE, "evidence": f"ubicación: {shown}", "basis": "texto"}
+    return {"status": UNKNOWN, "evidence": "ubicación no indicada" if not location.strip()
+            or any(contains(location, w) for w in _UNKNOWN_LOCATION)
+            else f"«{shown}» sin países informados", "basis": "texto"}
 
 
 def evaluate(job: dict, profile: dict) -> tuple[int, list[str], list[str]]:
@@ -218,21 +279,19 @@ def evaluate(job: dict, profile: dict) -> tuple[int, list[str], list[str]]:
         warnings.append(f"Pide {years} años de experiencia")
     if any(contains(all_text, k) for k in ("english c1", "ingles avanzado", "fluent english", "native english")):
         warnings.append("Revisar nivel de inglés exigido")
-    loc_terms = location_terms(profile)
-    restricted = residency_restriction(body, loc_terms)
-    if loc_terms and any(contains(location, x) for x in loc_terms) and not restricted:
+    # Ubicación: solo la elegibilidad confirmada suma; la desconocida avisa sin penalizar.
+    elig = eligibility(job, profile)
+    if elig["status"] == COMPATIBLE:
         if affinity:
             score += 8
-            positive.append("Ubicación/modalidad de interés")
-    elif loc_terms and is_place_list(location):
-        score -= 20
-        warnings.append("Ubicación fuera de tus zonas de interés: " + job.get("location", "")[:80])
-    if restricted:
-        score -= 20
-        warnings.append("Posible restricción de residencia: " + restricted)
-    if any(contains(location, x) for x in ("united states only", "us only", "usa only", "canada only")):
-        score -= 40
-        warnings.append("Posible restricción de residencia")
+            positive.append("Ubicación compatible: " + elig["evidence"])
+    elif elig["status"] == INCOMPATIBLE:
+        us_only = any(contains(location, x) for x in _US_ONLY)
+        score -= 40 if us_only else 20
+        warnings.append(("Posible restricción de residencia: " if us_only or elig["evidence"].startswith("exige")
+                         else "Ubicación fuera de tus zonas de interés: ") + elig["evidence"])
+    elif place_terms(profile):
+        warnings.append("Elegibilidad geográfica por confirmar: " + elig["evidence"])
     if not location:
         warnings.append("Ubicación sin confirmar")
     if not positive:

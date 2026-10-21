@@ -38,7 +38,8 @@ def test_entry_level_it_roles_pass_threshold():
         ("Soporte Operativo Junior", "Soporte a usuarios, Linux y redes LAN."),
         ("Junior IT Support Technician", "Soporte técnico de primer nivel."),
     ]:
-        s, pos, _ = score(job(title, desc, level="Junior", category="SysAdmin / DevOps / QA"))
+        s, pos, _ = score(job(title, desc, location="Santiago, Chile", level="Junior",
+                              category="SysAdmin / DevOps / QA"))
         assert s >= THRESHOLD, (title, s, pos)
 
 
@@ -137,11 +138,14 @@ def test_networking_and_it_support_still_match():
 
 
 def test_compatible_or_negated_residency_is_not_restricted():
-    for text in ("Candidates must be based in Latin America.", "No tienes que vivir en CDMX.",
-                 "Solo residentes en Chile."):
+    for text in ("Candidates must be based in Latin America.", "Solo residentes en Chile."):
         _, pos, warns = score(job("Backend Developer", "Python. " + text))
-        assert any("Ubicación" in p for p in pos), text
+        assert any(p.startswith("Ubicación compatible: exige residir en") for p in pos), text
         assert not any("restricción" in w for w in warns), text
+    # Negación: no restringe, pero «Remoto» sin países no confirma la elegibilidad.
+    _, pos, warns = score(job("Backend Developer", "Python. No tienes que vivir en CDMX."))
+    assert not any("restricción" in w for w in warns) and not any("Ubicación" in p for p in pos)
+    assert any(w.startswith("Elegibilidad geográfica por confirmar") for w in warns)
 
 
 def test_country_list_without_profile_zone_is_flagged():
