@@ -20,33 +20,48 @@ def valid_token(token: str) -> bool:
     return bool(re.fullmatch(r"[a-zA-Z0-9_-]{2,70}", token))
 
 
+def _field(item, *names) -> str:
+    """Primer hijo cuyo nombre (sin namespace) coincide; tolera CDATA con espacios."""
+    for el in item:
+        name = el.tag.split("}")[-1].lower()
+        if name in names and el.text and el.text.strip():
+            return el.text.strip()
+    return ""
+
+
 def parse_getonbrd_rss(content: bytes) -> list[dict]:
-    """Lee RSS 2.0 incluyendo campos opcionales con namespaces."""
+    """Lee el feed público de Get on Board.
+
+    Formato actual (verificado 2026-10): XML tipo Indeed `<source><job>…</job></source>`.
+    Se mantiene compatibilidad con RSS 2.0 (`<item>`) por si el portal vuelve a ese formato.
+    """
     try:
         root = ET.fromstring(content)
     except ET.ParseError as exc:
-        raise ValueError("Respuesta RSS ilegible") from exc
-
-    def field(item, *names):
-        for el in item:
-            name = el.tag.split("}")[-1].lower()
-            if name in names and el.text:
-                return el.text.strip()
-        return ""
+        raise ValueError("Respuesta del feed ilegible") from exc
 
     results = []
-    for item in root.findall(".//item"):
-        url = field(item, "link")
-        title = plain(field(item, "title"))
+    for item in root.iter():
+        if item.tag.split("}")[-1].lower() not in ("item", "job"):
+            continue
+        url = _field(item, "url", "link")
+        title = plain(_field(item, "title"))
         if not (url.startswith("https://") and title):
             continue
-        desc = plain(field(item, "description", "encoded", "summary"))
-        company = plain(field(item, "author", "creator", "company")) or "No indicada"
-        location = plain(field(item, "location"))
+        place = ", ".join(x for x in (plain(_field(item, "city")), plain(_field(item, "region")),
+                                      plain(_field(item, "country", "location"))) if x)
+        meta = " · ".join(f"{label}: {plain(value)}" for label, value in (
+            ("Nivel", _field(item, "experience")), ("Jornada", _field(item, "jobtype")),
+            ("Categoría", _field(item, "category")), ("Renta", _field(item, "salary"))) if value)
+        body = " ".join(x for x in (meta, plain(_field(item, "description", "encoded", "summary")),
+                                    plain(_field(item, "content"))) if x)
+        company = plain(_field(item, "company", "author", "creator")) or "No indicada"
         results.append({"source": "Get on Board", "title": title, "company": company,
-                        "location": location or "No indicada (verificar en oferta)",
-                        "url": url, "description": desc[:10000],
-                        "posted_at": field(item, "pubdate", "published", "date")})
+                        "location": place or "No indicada (verificar en oferta)",
+                        "url": url, "description": body[:10000],
+                        "posted_at": _field(item, "date", "pubdate", "published")})
+    if not results and root.tag.split("}")[-1].lower() not in ("rss", "source", "feed"):
+        raise ValueError(f"Formato de feed no reconocido: <{root.tag}>")
     return results
 
 
