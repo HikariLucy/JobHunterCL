@@ -1,88 +1,98 @@
-# JobHunter CL — MVP local
+# JobHunter CL
 
-Buscador y organizador personal de ofertas laborales para Chile y trabajos remotos. Incluye lectura de fuentes públicas, matching configurable, deduplicación, SQLite, estados y respaldo transferible entre computadores.
+Buscador y organizador personal de ofertas laborales para Chile y empleos remotos. Funciona **en tu PC, bajo demanda**: lo abres, consultas fuentes públicas, puntúa las ofertas con explicaciones y guarda tu seguimiento en SQLite local.
 
-**Estado:** MVP de búsqueda y seguimiento. **No postula automáticamente**. Los formularios se abren en el portal de origen para revisión humana. No se han validado en vivo las integraciones en la red de tu equipo.
+**Estado:** panel nuevo FastAPI + React en la rama `feat/local-first-fastapi-react`; el MVP Streamlit sigue disponible hasta validar la paridad ([docs/MIGRACION.md](docs/MIGRACION.md)). **No postula automáticamente.**
 
-## Windows (PowerShell)
+- Solo escucha en `127.0.0.1`. No instala servicios ni requiere Docker, WSL, nube ni servicios de pago.
+- Las ofertas guardadas se consultan sin internet; las búsquedas nuevas requieren conexión.
+- Las búsquedas programadas solo se ejecutan mientras JobHunter está abierto.
+- Al cerrar la ventana (o Ctrl+C) todo se detiene.
 
-Necesitas **Python 3.11 o superior**, internet y permiso para instalar programas en el PC de trabajo. **Opción fácil:** descomprime **todo** el ZIP, entra en `JobHunter-CL` y haz doble clic en `INICIAR-WINDOWS.bat`. El iniciador comprueba Python 3.11+, crea o reutiliza `.venv`, instala paquetes si faltan, espera a que Streamlit responda y abre el navegador. **Deja la ventana CMD abierta** mientras utilices la aplicación. Si el navegador no aparece, la propia consola imprime la URL `http://127.0.0.1:8501` (u otro puerto libre). Si prefieres la terminal, usa estos comandos:
+## Requisitos
 
-```powershell
-cd "$HOME\Documents"
-# Descomprime el ZIP completo en Documentos antes de ejecutar:
-cd .\JobHunter-CL
-py -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe launch.py
-```
+- **Python 3.11+**
+- **Node.js 20+** (solo para compilar el panel la primera vez y tras actualizar el código)
 
-Si `py` no existe pero `python` sí, cambia `py -m venv .venv` por `python -m venv .venv`.
-
-## Ubuntu / Linux
-
-La opción rápida es `bash iniciar-linux.sh`; verifica las dependencias y abre el navegador al levantar el servidor. También puedes ejecutar los comandos manualmente:
-
-```bash
-cd ~/proyectos/JobHunter-CL
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python launch.py
-```
-
-La interfaz se abre normalmente en http://127.0.0.1:8501 (o el siguiente puerto libre). En la pestaña **Perfil y fuentes** adapta los cargos y habilidades a tu caso. Luego pulsa **Buscar nuevas ofertas**. Get on Board es la fuente inicial; Remotive y compañías de Greenhouse/Lever son opcionales. No se consulta de manera continua: debes hacer clic y existe una espera para evitar solicitudes excesivas.
-
-## Continuar desde casa
-
-1. No subas `data/`, CV, secretos ni `.venv/` a GitHub; el proyecto los ignora.
-2. Tras crear tu repositorio **privado** de GitHub, envía el código con Git. En casa ejecuta `git clone URL_DEL_REPO` y crea otro entorno virtual.
-3. Si quieres mantener las ofertas y sus estados, usa **Seguimiento → Descargar respaldo JSON** y luego **Importar respaldo** en casa por un canal personal seguro. El respaldo incluye el perfil y puede contener notas privadas; transfiérelo por un canal personal seguro.
-
-### Repositorio existente: HikariLucy/jobhunter
-
-Ya existe el repositorio privado [HikariLucy/jobhunter](https://github.com/HikariLucy/jobhunter). **No vuelvas a crearlo.** Puedes clonar el proyecto en otro equipo así:
+## Windows
 
 ```powershell
 git clone https://github.com/HikariLucy/jobhunter.git
 cd jobhunter
-.\INICIAR-WINDOWS.bat
+.\INICIAR-JOBHUNTER.bat
 ```
 
-Desde Ubuntu:
+El BAT crea `.venv`, instala dependencias si faltan, compila el panel si hace falta y abre el navegador en `http://127.0.0.1:8765` (o el siguiente puerto libre). **Deja la ventana abierta** mientras lo uses; ciérrala o pulsa Ctrl+C para salir.
+
+Manual:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe start.py
+```
+
+## Ubuntu
 
 ```bash
+sudo apt install python3 python3-venv nodejs npm   # Node 20+: usa NodeSource o nvm si la versión de apt es antigua
 git clone https://github.com/HikariLucy/jobhunter.git ~/proyectos/jobhunter
 cd ~/proyectos/jobhunter
-bash iniciar-linux.sh
+bash iniciar-jobhunter.sh
 ```
 
-GitHub solo guarda el código. El archivo `data/profile.json`, la base de datos y los CV personales **no** se suben. Si necesitas recuperar tus postulaciones, utiliza el respaldo JSON dentro de la pestaña «Seguimiento» y guárdalo de forma privada.
+Manual: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python start.py`.
 
-### Si Windows no abre el panel
+Opciones de `start.py`: `--no-browser`, `--port 8800`, `--build` (fuerza recompilar el panel).
 
-1. Abre CMD en la carpeta descomprimida: escribe `cmd` en la barra de direcciones del Explorador y pulsa Enter.
-2. Ejecuta `INICIAR-WINDOWS.bat`. La consola **no debería cerrarse sola**: si hay un error, quedará visible al final.
-3. Cuando se muestre «Panel listo», copia la dirección `http://127.0.0.1:8501` al navegador. El puerto puede ser 8502, 8503, etc., si ya hay otra app ocupando el primero.
-4. Si ves un error durante instalación (por ejemplo proxy, red restringida o `pip`), envía el texto o una captura de CMD. No pegues tokens, contraseñas ni variables de entorno.
-5. Si `.venv` quedó incompleto, cambia su nombre por `.venv-anterior` y vuelve a lanzar el BAT; no es necesario eliminar tus archivos de `data/`.
+## Configuración opcional
 
-En el PC del trabajo, instala dependencias solo si está autorizado por las políticas de la empresa.
+Copia `.env.example` a `.env`:
+
+| Variable | Defecto | Uso |
+|---|---|---|
+| `JOBHUNTER_DATA_DIR` | `./data` | Carpeta de datos privados |
+| `JOBHUNTER_PORT` | `8765` | Puerto inicial |
+| `JOBHUNTER_SCHEDULER` | `1` | `0` desactiva el programador |
+
+## Secciones
+
+- **Dashboard:** nuevas coincidencias, embudo de postulaciones, estado de las búsquedas.
+- **Explorar ofertas:** búsqueda, filtros, puntaje explicado, enlace al original, estado y notas.
+- **Seguimiento:** postulaciones por estado, notas e historial de cambios.
+- **Mi perfil:** cargos, habilidades, ubicaciones, experiencia, idiomas y preferencias.
+- **Configuración:** fuentes, frecuencia de búsqueda, registro de ejecuciones, respaldo/importación.
+
+## Datos, respaldo y privacidad
+
+- `data/` contiene la base SQLite, el perfil y las copias automáticas (`data/backups/`). **Nunca se sube a GitHub**; tampoco `.env`, CV (`*.tex`, `*.pdf`, `*.docx`), cookies ni sesiones.
+- Antes de migrar el esquema o importar un respaldo se guarda una copia de la base.
+- Para pasar el seguimiento a otro PC: **Configuración → Descargar respaldo** e **Importar** en el otro equipo. El JSON contiene datos privados; transfiérelo por un canal personal seguro. Es compatible con el respaldo del MVP Streamlit.
 
 ## Fuentes y límites
 
-- **Get on Board:** feed público `https://www.getonbrd.com/jobs/feed` (centrado en empleo tecnológico Chile/LatAm). No requiere inicio de sesión.
-- **Remotive:** API pública `https://remotive.com/api/remote-jobs`, solo si se activa. Su documentación aconseja consultar como máximo 4 veces por día, atribuir el origen y enlazar la oferta original; la app aplica una espera de 6 horas cuando está habilitada.
-- **Greenhouse / Lever:** API de publicaciones abiertas para empresas que selecciones. Introduce el *board token* o *site name* público, no credenciales.
-- No se salta CAPTCHA, no se extraen datos protegidos por inicio de sesión, no se hacen envíos masivos y no se inventa experiencia ni respuestas. Antes de implementar cada portal adicional hay que comprobar sus condiciones y permiso de automatización.
+- **Get on Board:** feed público RSS. **Remotive:** API pública (máx. 4 consultas/día → espera de 6 h 30 min). **Greenhouse / Lever:** APIs públicas de empresas concretas (identificador público, nunca credenciales).
+- Espera mínima entre búsquedas: 30 min. Reintentos solo ante fallos de red/servidor; un HTTP 429 no se reintenta.
+- No se salta CAPTCHA, no se accede a contenido con inicio de sesión ni se envían postulaciones.
 
-**Privacidad y seguridad:** uso local; `data/` contiene el perfil y el seguimiento. No ejecutes el panel en una red compartida ni en un servidor accesible públicamente. En un PC corporativo utiliza la aplicación solo si las políticas internas lo permiten.
+## Desarrollo
 
-## Pruebas
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q
+```bash
+# Backend con recarga
+.venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8765 --reload
+# Frontend con recarga (otra terminal) → http://127.0.0.1:5173
+cd frontend && npm install && npm run dev
 ```
 
-## Próximos hitos
+Pruebas:
 
-Revisar `ROADMAP.md` y `PROMPT_CODEX_CLAUDE.md`. La fase de automatizar formularios es asistida, permitida según cada sitio y con confirmación antes del envío.
+```bash
+.venv/bin/python -m pytest -q          # Windows: .\.venv\Scripts\python.exe -m pytest -q
+cd frontend && npm test && npm run build
+```
+
+Arquitectura: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · Integración futura de CV: [docs/CV_INTEGRACION.md](docs/CV_INTEGRACION.md) · Hitos: [ROADMAP.md](ROADMAP.md).
+
+## MVP anterior (Streamlit)
+
+Sigue disponible mientras se valida la paridad: `INICIAR-WINDOWS.bat` / `bash iniciar-linux.sh` (usa `launch.py`, puerto 8501). Comparte la misma base de datos; evita usar ambas interfaces a la vez.

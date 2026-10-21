@@ -12,15 +12,27 @@
 - [ ] Ejecutar smoke test real con red en Windows del trabajo.
 - [ ] Comprobar funcionamiento real en Ubuntu en casa.
 
+## M0.5 · Arquitectura local-first (FastAPI + React) — rama `feat/local-first-fastapi-react`
+- [x] Backend FastAPI modular sobre el SQLite existente, solo en 127.0.0.1 y con validación de Host.
+- [x] Migración aditiva del esquema (historial de estados, registro de búsquedas) con copia previa.
+- [x] Panel React: Dashboard, Explorar, Seguimiento, Mi perfil, Configuración.
+- [x] Reutilización de conectores y matching; corrección de campos nulos en Greenhouse/Lever.
+- [x] Búsqueda programada en proceso (solo con la app abierta), reintentos y registro de fallos.
+- [x] Lanzador único Windows/Ubuntu con cierre limpio (verificado en Windows 10).
+- [x] Contratos de integración de CV (sin implementación).
+- [ ] Validación de paridad por el usuario con datos reales → retirar Streamlit.
+- [ ] Smoke test en Ubuntu y búsqueda real con red desde el panel nuevo.
+- [ ] Importar historial de estados desde respaldos.
+
 ## M1 · Búsqueda adaptada a Chile
-- [ ] Perfil fiel verificado: experiencia, ubicación, modalidad, remuneración, inglés, seniority.
+- [ ] Perfil fiel verificado: experiencia, ubicación, modalidad, remuneración, inglés, seniority. *(campos disponibles en el panel; falta usarlos en el matching)*
 - [ ] Obtener descripción completa por APIs públicas antes de puntuar.
 - [ ] Mejorar ranking: habilidades obligatorias vs deseables, incompatibilidades duras y explicaciones.
 - [ ] Conectores adicionales (solo endpoints permitidos), intervalos, backoff y robots/ToS por plataforma.
 - [ ] Pruebas con fixtures reales anonimizados y análisis de duplicados entre fuentes.
 
 ## M2 · Preparación de postulaciones
-- [ ] Importar CV **local** y extraer datos con revisión explícita.
+- [ ] Importar CV **local** y extraer datos con revisión explícita. *(diseño: docs/CV_INTEGRACION.md)*
 - [ ] Adaptar CV y carta sin inventar experiencia.
 - [ ] Detectar preguntas del formulario y preparar respuestas para aprobación.
 - [ ] Definir protección de secretos y políticas de retención.
@@ -33,7 +45,7 @@
 - [ ] Autoenvío opt-in solo para plataformas donde esté permitido y tras validar elegibilidad, CV y datos.
 
 ## M4 · Operación
-- [ ] Planificador de búsqueda con límites y posibilidad de detenerse.
+- [x] Planificador de búsqueda con límites y posibilidad de detenerse (en proceso, M0.5).
 - [ ] Alertas por ofertas relevantes, deduplicadas.
 - [ ] Sincronizar estado de forma cifrada entre computadores (GitHub solamente para código).
 - [ ] Panel de tasas de respuesta, entrevistas y mejoras del CV.
