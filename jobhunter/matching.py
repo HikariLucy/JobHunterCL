@@ -17,6 +17,30 @@ def contains(text: str, phrase: str) -> bool:
     return re.search(r"(?<!\w)" + re.escape(phrase) + r"(?!\w)", norm(text)) is not None
 
 
+# Categorías publicadas por Get on Board (normalizadas). Se usan como prefijo porque
+# el feed no separa la categoría del cuerpo cuando la oferta no informa renta.
+SOURCE_CATEGORIES = (
+    "programacion", "sysadmin / devops / qa", "data science / analytics", "machine learning / ai",
+    "desarrollo mobile", "diseno / ux", "ciberseguridad", "soporte tecnico", "soporte al cliente",
+    "comercial y ventas", "marketing digital", "contenido, publicidad y medios", "operaciones / admin",
+    "producto, innovacion y agilidad", "recursos humanos", "educacion y coaching",
+)
+_LEVEL = re.compile(r"^Nivel: ([^·]{1,40}?) ·")
+_CATEGORY = re.compile(r"Categoría: ([^·]{1,80})")
+
+
+def source_meta(description: str) -> dict:
+    """Nivel y categoría que la fuente antepone a la descripción (Get on Board); None si faltan."""
+    head = str(description or "")[:300]
+    level = _LEVEL.match(head)
+    cat = _CATEGORY.search(head)
+    category = None
+    if cat:
+        text = norm(cat.group(1))
+        category = next((c for c in SOURCE_CATEGORIES if text.startswith(c)), None)
+    return {"level": norm(level.group(1)) if level else None, "category": category}
+
+
 def evaluate(job: dict, profile: dict) -> tuple[int, list[str], list[str]]:
     """Devuelve score 0-100, motivos a favor y advertencias."""
     title = norm(job.get("title", ""))
