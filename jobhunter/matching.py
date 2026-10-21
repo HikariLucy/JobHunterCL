@@ -41,11 +41,41 @@ def required_years(text: str) -> int | None:
     return max(found) if found else None
 
 
+@lru_cache(maxsize=1024)
+def _phrase_re(phrase: str) -> re.Pattern:
+    return re.compile(r"(?<!\w)" + re.escape(phrase) + r"(?!\w)")
+
+
 def contains(text: str, phrase: str) -> bool:
     phrase = norm(phrase)
     if not phrase:
         return False
-    return re.search(r"(?<!\w)" + re.escape(phrase) + r"(?!\w)", norm(text)) is not None
+    text = norm(text)
+    # Descarte por subcadena (rápido) antes de comprobar límites de palabra.
+    return phrase in text and _phrase_re(phrase).search(text) is not None
+
+
+# Habilidades cuyo término aparece en expresiones de otro oficio («redes sociales» no
+# son redes de datos; «soporte al cliente» no es soporte TI). Se ignoran esos usos.
+SKILL_FALSE_FRIENDS = {
+    "redes": ("redes sociales", "redes neuronales"),
+    "soporte": ("soporte al cliente", "soporte a clientes", "soporte a campanas", "soporte comercial"),
+}
+
+
+@lru_cache(maxsize=256)
+def _without_false_friends(text: str, key: str) -> str:
+    for phrase in SKILL_FALSE_FRIENDS[key]:
+        text = _phrase_re(phrase).sub(" ", text)
+    return text
+
+
+def has_skill(text: str, skill: str) -> bool:
+    """Como contains(), pero sin contar los usos de SKILL_FALSE_FRIENDS."""
+    key = norm(skill)
+    if key in SKILL_FALSE_FRIENDS:
+        text = _without_false_friends(norm(text), key)
+    return contains(text, key)
 
 
 # Categorías publicadas por Get on Board (normalizadas). Se usan como prefijo porque
@@ -117,7 +147,7 @@ def evaluate(job: dict, profile: dict) -> tuple[int, list[str], list[str]]:
             score += 22
             positive.append("Cargo similar: " + overlaps[0])
     skills = [s.strip() for s in profile.get("skills", []) if s.strip()]
-    present = [s for s in skills if contains(all_text, s)]
+    present = [s for s in skills if has_skill(all_text, s)]
     if present:
         score += min(42, len(present) * 7)
         positive.append("Coincidencias técnicas: " + ", ".join(present[:8]))

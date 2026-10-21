@@ -125,16 +125,22 @@ def test_three_or_four_years_warn_entry_profiles_only():
     assert not any("años" in w for w in warns)
 
 
+def test_networking_and_it_support_still_match():
+    _, pos, _ = score(job("Técnico de Soporte", "Soporte técnico a usuarios y redes LAN. Redes sociales: no.",
+                          level="Junior", category="Soporte Técnico"))
+    assert any("redes" in p and "soporte" in p for p in pos)
+
+
 # --- Defectos conocidos (M1) ---------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason="La habilidad 'redes' coincide con 'redes sociales'")
 def test_social_media_is_not_networking():
+    """Antes: la habilidad «redes» coincidía con «redes sociales»."""
     _, pos, _ = score(job("Community Manager", "Gestión de redes sociales y contenido.", category="Marketing"))
     assert not any("redes" in p for p in pos)
 
 
-@pytest.mark.xfail(strict=True, reason="La habilidad 'soporte' coincide con 'soporte al cliente' no técnico")
 def test_customer_service_is_not_it_support():
+    """Antes: la habilidad «soporte» coincidía con «soporte al cliente» no técnico."""
     _, pos, _ = score(job("Ejecutivo de Atención", "Soporte al cliente por chat y correo.",
                           category="Soporte al cliente"))
     assert not any("soporte" in p for p in pos)
