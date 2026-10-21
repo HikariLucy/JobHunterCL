@@ -81,6 +81,55 @@ describe("SearchButton", () => {
     expect(await screen.findByText(/Podrás buscar de nuevo en 20 min/)).toBeInTheDocument();
   });
 
+  it("se deshabilita durante la espera mínima sin llamar a la búsqueda", async () => {
+    const soon = new Date(Date.now() + 45 * 60000).toISOString();
+    const fetch = mockFetch({ "GET /api/search/status": () => ({ next_allowed_at: soon }) });
+    render(<SearchButton />);
+    expect(await screen.findByText(/Disponible en 45 min/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Buscar nuevas ofertas" })).toBeDisabled();
+    expect(fetch.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
+  });
+
+  it("queda habilitado si la espera ya venció", async () => {
+    const past = new Date(Date.now() - 5 * 60000).toISOString();
+    mockFetch({ "GET /api/search/status": () => ({ next_allowed_at: past }) });
+    render(<SearchButton />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Buscar nuevas ofertas" })).toBeEnabled());
+    expect(screen.queryByText(/Disponible/)).not.toBeInTheDocument();
+  });
+
+  it("si fallan todas las fuentes muestra error y cuándo reintentar", async () => {
+    const user = userEvent.setup();
+    let next: string | null = null;
+    mockFetch({
+      "GET /api/search/status": () => ({ next_allowed_at: next }),
+      "POST /api/search": () => {
+        next = new Date(Date.now() + 30 * 60000).toISOString();
+        return { id: 2, started_at: "", finished_at: "", trigger: "manual", status: "error",
+                 fetched: 0, added: 0, errors: ["Get on Board: HTTP 503"] };
+      },
+    });
+    render(<SearchButton />);
+    await user.click(screen.getByRole("button", { name: "Buscar nuevas ofertas" }));
+    const msg = await screen.findByText(/No se pudo consultar ninguna fuente/);
+    expect(msg).toHaveClass("text-error");
+    expect(msg).toHaveTextContent("Fallos: Get on Board: HTTP 503 Podrás reintentar en 30 min.");
+    expect(screen.getByRole("button", { name: "Buscar nuevas ofertas" })).toBeDisabled();
+  });
+
+  it("sin conexión a las fuentes indica que se puede reintentar ya", async () => {
+    const user = userEvent.setup();
+    mockFetch({
+      "GET /api/search/status": () => ({ next_allowed_at: null }),
+      "POST /api/search": () => ({ id: 3, started_at: "", finished_at: "", trigger: "manual", status: "error",
+                                   fetched: 0, added: 0, errors: ["Get on Board: Connection refused"] }),
+    });
+    render(<SearchButton />);
+    await user.click(screen.getByRole("button", { name: "Buscar nuevas ofertas" }));
+    expect(await screen.findByText(/puedes reintentar ahora/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Buscar nuevas ofertas" })).toBeEnabled();
+  });
+
   it("resume ofertas leídas y fallos parciales", async () => {
     const user = userEvent.setup();
     const onDone = vi.fn();
