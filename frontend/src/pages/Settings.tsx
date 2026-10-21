@@ -45,7 +45,14 @@ function SourcesForm({ initial, onSaved }: { initial: AppConfig; onSaved: (c: Ap
       <Card title="Fuentes públicas">
         <label className="check">
           <input type="checkbox" checked={c.sources.getonbrd} onChange={(e) => setSource("getonbrd", e.target.checked)} />
-          <span><strong>Get on Board</strong> — empleo tecnológico Chile/LatAm (feed público)</span>
+          <span><strong>Get on Board</strong> — empleo tecnológico Chile/LatAm (feed público, últimas ofertas de todas las categorías)</span>
+        </label>
+        <label className="check">
+          <input type="checkbox" checked={c.sources.getonbrd_api ?? false}
+                 onChange={(e) => setSource("getonbrd_api", e.target.checked)} />
+          <span><strong>Get on Board — API pública</strong> — todas las ofertas técnicas elegibles desde Chile
+            (presenciales, híbridas o remotas); ~11 consultas por búsqueda, espera mínima de 60 min.
+            Se combina con el feed sin duplicar ofertas.</span>
         </label>
         <label className="check">
           <input type="checkbox" checked={c.sources.remotive} onChange={(e) => setSource("remotive", e.target.checked)} />

@@ -76,6 +76,23 @@ describe("navegación y páginas", () => {
     expect(screen.getByText(/la frecuencia real será cada 6.5 h/)).toBeInTheDocument();
   });
 
+  it("Configuración activa la API de Get on Board sin desactivar el feed", async () => {
+    const user = userEvent.setup();
+    const fetch = mockFetch({
+      ...base,
+      "GET /api/config": () => ({ sources: { getonbrd: true, getonbrd_api: false, remotive: false, greenhouse_boards: [], lever_sites: [] },
+                                  scan_interval_minutes: 0, min_interval_minutes: 30 }),
+      "PUT /api/config": (_u, init) => ({ ...JSON.parse(String(init.body)), min_interval_minutes: 60 }),
+      "GET /api/search/status": () => SEARCH,
+    });
+    renderAt("/configuracion");
+    await user.click(await screen.findByRole("checkbox", { name: /API pública/ }));
+    await user.click(screen.getByRole("button", { name: "Guardar configuración" }));
+    await waitFor(() => expect(fetch.mock.calls.some(([, init]) => init?.method === "PUT")).toBe(true));
+    const put = fetch.mock.calls.find(([, init]) => init?.method === "PUT");
+    expect(JSON.parse(String(put?.[1]?.body)).sources).toMatchObject({ getonbrd: true, getonbrd_api: true });
+  });
+
   it("Configuración informa el historial restaurado al importar un respaldo", async () => {
     const user = userEvent.setup();
     const fetch = mockFetch({

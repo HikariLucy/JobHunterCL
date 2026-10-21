@@ -26,6 +26,7 @@ def _clean_list(values: list[str]) -> list[str]:
 class Sources(BaseModel):
     model_config = ConfigDict(extra="allow")
     getonbrd: bool = True
+    getonbrd_api: bool = False  # API pública: más ofertas técnicas elegibles desde Chile
     remotive: bool = False
     greenhouse_boards: list[str] = []
     lever_sites: list[str] = []

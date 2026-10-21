@@ -92,6 +92,14 @@ def test_config_interval_and_min_interval(client):
     assert client.get("/api/profile").json()["sources"]["remotive"] is True
 
 
+def test_config_getonbrd_api_toggle(client):
+    assert client.get("/api/config").json()["sources"]["getonbrd_api"] is False
+    cfg = client.put("/api/config", json={"scan_interval_minutes": 0,
+                                         "sources": {"getonbrd": True, "getonbrd_api": True}}).json()
+    assert cfg["sources"]["getonbrd_api"] is True and cfg["min_interval_minutes"] == 60
+    assert client.get("/api/profile").json()["sources"]["getonbrd"] is True
+
+
 def test_backup_export_import_roundtrip(seeded, settings, tmp_path):
     seeded.patch(f"/api/jobs/{ID1}", json={"status": "Preparada"})
     exported = seeded.get("/api/backup/export")

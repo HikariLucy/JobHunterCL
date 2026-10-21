@@ -9,7 +9,7 @@ DEFAULT_PROFILE = {
     "skills": ["python", "sql", "postgresql", "linux", "git", "docker", "fastapi", "redes", "soporte"],
     "locations": ["santiago", "chile", "remote", "remoto", "latam"],
     "min_score": 30,
-    "sources": {"getonbrd": True, "remotive": False, "greenhouse_boards": [], "lever_sites": []},
+    "sources": {"getonbrd": True, "getonbrd_api": False, "remotive": False, "greenhouse_boards": [], "lever_sites": []},
 }
 
 
