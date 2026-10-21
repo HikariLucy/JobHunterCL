@@ -44,8 +44,8 @@ def test_entry_level_it_roles_pass_threshold():
 
 
 def test_senior_in_title_is_penalized():
-    s, _, warns = score(job("Senior Backend Engineer", "Python, SQL, Docker, Git.", level="Senior"))
-    assert s < THRESHOLD and SENIOR in warns
+    s, _, warns = score(job("Senior Backend Engineer", "Python, SQL, Docker, Git.", level="Semi Senior"))
+    assert s < THRESHOLD and SENIOR in warns  # el título manda aunque la fuente diga Semi Senior
 
 
 def test_unrelated_commercial_role_stays_low():
@@ -59,19 +59,36 @@ def test_explicit_five_years_is_flagged():
     assert YEARS in warns
 
 
-# --- Defectos conocidos (M1) ---------------------------------------------------------
-
-@pytest.mark.xfail(strict=True, reason="El nivel se lee solo del título; 92/207 ofertas Senior/Expert sin advertencia")
 def test_senior_level_field_is_penalized():
+    """Antes: 92/207 ofertas Senior/Expert sin «senior» en el título no se penalizaban."""
     s, _, warns = score(job("DevOps & AI Infrastructure Engineer",
                             "Python, PostgreSQL, Linux, Git y Docker.", level="Senior"))
-    assert SENIOR in warns and s < THRESHOLD
+    assert "La fuente indica nivel senior" in warns and s < THRESHOLD
 
 
-@pytest.mark.xfail(strict=True, reason="El nivel se lee solo del título; 10/16 ofertas Junior sin bonificación")
 def test_junior_level_field_counts_as_entry_level():
+    """Antes: 10/16 ofertas Junior sin «junior» en el título no recibían la bonificación."""
     _, pos, _ = score(job("Desarrollador .NET Web Forms + SQL Server", "C#, SQL Server.", level="Junior"))
     assert ENTRY in pos
+
+
+def test_semi_senior_is_softly_penalized_for_entry_profiles():
+    s_mid, _, warns = score(job("Programador Back-end", "Python.", level="Semi Senior"))
+    s_jr, _, _ = score(job("Programador Back-end", "Python.", level="Junior"))
+    assert s_mid < s_jr and any("Semi Senior" in w for w in warns)
+
+
+def test_seniority_preference_changes_level_scoring():
+    mid_profile = {**DEFAULT_PROFILE, "preferences": {"seniority": ["Semi Senior"]}}
+    _, pos, warns = evaluate(job("Programador Back-end", "Python.", level="Semi Senior"), mid_profile)
+    assert "Nivel buscado: semi senior" in pos and not any("Semi Senior" in w for w in warns)
+    senior_profile = {**DEFAULT_PROFILE, "preferences": {"seniority": ["senior"]}}
+    _, _, warns = evaluate(job("Backend Engineer", "Python.", level="Senior"), senior_profile)
+    assert not any("senior" in w.lower() for w in warns)
+
+
+# --- Defectos conocidos (M1) ---------------------------------------------------------
+
 
 
 @pytest.mark.xfail(strict=True, reason="norm() elimina el guion largo: '1–3 years' se lee como '13 years'")

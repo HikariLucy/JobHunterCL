@@ -41,6 +41,30 @@ def source_meta(description: str) -> dict:
     return {"level": norm(level.group(1)) if level else None, "category": category}
 
 
+LEVEL_CLASS = {"sin experiencia requerida": "inicial", "junior": "inicial", "trainee": "inicial",
+               "semi senior": "intermedio", "senior": "senior", "expert": "senior"}
+LEVEL_BONUS = {"inicial": 18, "intermedio": 10, "senior": 10}
+_WANTED_WORDS = (("inicial", ("junior", "jr", "trainee", "practica", "sin experiencia", "inicial", "entry")),
+                 ("intermedio", ("semi", "intermedio", "mid")),
+                 ("senior", ("senior", "expert", "lead")))
+
+
+def wanted_levels(profile: dict) -> set[str]:
+    """Niveles de «Nivel buscado» del perfil; sin preferencia se asume nivel inicial."""
+    prefs = profile.get("preferences") or {}
+    values = [norm(v) for v in (prefs.get("seniority") or []) if str(v).strip()]
+    found = set()
+    for value in values:
+        # «semi senior» es intermedio, no senior
+        if any(w in value for w in _WANTED_WORDS[1][1]):
+            found.add("intermedio")
+            continue
+        for cls, words in (_WANTED_WORDS[0], _WANTED_WORDS[2]):
+            if any(w in value for w in words):
+                found.add(cls)
+    return found or {"inicial"}
+
+
 def evaluate(job: dict, profile: dict) -> tuple[int, list[str], list[str]]:
     """Devuelve score 0-100, motivos a favor y advertencias."""
     title = norm(job.get("title", ""))
@@ -66,13 +90,21 @@ def evaluate(job: dict, profile: dict) -> tuple[int, list[str], list[str]]:
     if present:
         score += min(42, len(present) * 7)
         positive.append("Coincidencias técnicas: " + ", ".join(present[:8]))
+    wanted = wanted_levels(profile)
+    level = source_meta(job.get("description", "")).get("level")
+    offer = LEVEL_CLASS.get(level)
     if any(contains(title, k) for k in ("junior", "jr", "trainee", "practica", "entry level", "sin experiencia")):
-        score += 18
-        positive.append("Nivel inicial indicado")
-    senior = any(contains(title, k) for k in ("senior", "sr", "staff", "principal", "lead", "jefe", "gerente", "manager", "architect"))
-    if senior:
+        offer = offer or "inicial"
+    senior_title = any(contains(title, k) for k in ("senior", "sr", "staff", "principal", "lead", "jefe", "gerente", "manager", "architect"))
+    if offer in wanted:
+        score += LEVEL_BONUS[offer]
+        positive.append("Nivel inicial indicado" if offer == "inicial" else f"Nivel buscado: {level or offer}")
+    if "senior" not in wanted and (offer == "senior" or senior_title):
         score -= 48
-        warnings.append("El cargo parece senior/de liderazgo")
+        warnings.append(f"La fuente indica nivel {level}" if offer == "senior" else "El cargo parece senior/de liderazgo")
+    elif offer == "intermedio" and offer not in wanted:
+        score -= 15
+        warnings.append("Nivel intermedio (Semi Senior): suele pedir experiencia previa")
     if re.search(r"\b(?:[5-9]|1\d)\s*(?:\+|o mas)?\s*(?:anos|years)\b", all_text):
         score -= 24
         warnings.append("Puede exigir 5 o más años de experiencia")
