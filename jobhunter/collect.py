@@ -1,6 +1,7 @@
 """Conectores de lectura para publicaciones públicas (sin inicio de sesión)."""
 from __future__ import annotations
 import re
+from typing import Callable
 from urllib.parse import quote
 import requests
 import xml.etree.ElementTree as ET
@@ -74,7 +75,7 @@ def greenhouse(board: str) -> list[dict]:
     r.raise_for_status()
     jobs = r.json().get("jobs", [])
     return [{"source": f"Greenhouse/{board}", "title": plain(j.get("title", "")),
-             "company": board, "location": j.get("location", {}).get("name", ""),
+             "company": board, "location": (j.get("location") or {}).get("name", ""),
              "url": j.get("absolute_url", ""), "description": plain(j.get("content", ""))[:10000],
              "posted_at": j.get("updated_at", "")} for j in jobs if str(j.get("absolute_url", "")).startswith("https://")]
 
@@ -87,14 +88,14 @@ def lever(site: str) -> list[dict]:
     r.raise_for_status()
     jobs = r.json()
     return [{"source": f"Lever/{site}", "title": plain(j.get("text", "")),
-             "company": site, "location": j.get("categories", {}).get("location", ""),
+             "company": site, "location": (j.get("categories") or {}).get("location", ""),
              "url": j.get("hostedUrl", ""),
              "description": plain(j.get("descriptionPlain", "") or j.get("description", ""))[:10000],
              "posted_at": ""} for j in jobs if str(j.get("hostedUrl", "")).startswith("https://")]
 
 
-def fetch_all(sources: dict) -> tuple[list[dict], list[str]]:
-    results, errors = [], []
+def build_sources(sources: dict) -> list[tuple[str, Callable[[], list[dict]]]]:
+    """Lista (nombre, función) de las fuentes habilitadas en el perfil."""
     jobsources = []
     if sources.get("getonbrd", True):
         jobsources.append(("Get on Board", getonbrd))
@@ -104,7 +105,12 @@ def fetch_all(sources: dict) -> tuple[list[dict], list[str]]:
         jobsources.append(("Greenhouse/" + board, lambda board=board: greenhouse(board)))
     for site in sources.get("lever_sites", []):
         jobsources.append(("Lever/" + site, lambda site=site: lever(site)))
-    for name, fn in jobsources:
+    return jobsources
+
+
+def fetch_all(sources: dict) -> tuple[list[dict], list[str]]:
+    results, errors = [], []
+    for name, fn in build_sources(sources):
         try:
             results.extend(fn())
         except (requests.RequestException, ValueError, KeyError, TypeError) as exc:
