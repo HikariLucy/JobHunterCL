@@ -60,7 +60,7 @@ Copia `.env.example` a `.env`:
 - **Dashboard:** nuevas coincidencias, embudo de postulaciones, estado de las búsquedas.
 - **Explorar ofertas:** búsqueda, filtros, puntaje explicado, enlace al original, estado y notas.
 - **Seguimiento:** postulaciones por estado, notas e historial de cambios.
-- **Mi perfil:** cargos, habilidades, ubicaciones, experiencia, idiomas y preferencias.
+- **Mi perfil:** cargos, habilidades, ubicaciones, experiencia, idiomas y preferencias. «Nivel buscado» ajusta la puntuación (vacío = nivel inicial: penaliza Senior y, en menor medida, Semi Senior).
 - **Configuración:** fuentes, frecuencia de búsqueda, registro de ejecuciones, respaldo/importación.
 
 ## Datos, respaldo y privacidad

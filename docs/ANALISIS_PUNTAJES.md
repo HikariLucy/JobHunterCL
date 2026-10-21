@@ -1,6 +1,6 @@
 # Análisis de puntuaciones — 326 ofertas de Get on Board
 
-Fecha: 2026-10-21. Insumo para M1 («Mejorar ranking»). **No se cambió el algoritmo.**
+Fecha: 2026-10-21. Insumo para M1 («Mejorar ranking»). Las secciones «Distribución» a «Defectos concretos» describen el algoritmo **anterior**; los resultados de M1 están al final.
 
 ## Método
 
@@ -59,7 +59,7 @@ Causa: **10 de 16** ofertas de nivel inicial no dicen «junior» en el título y
 
 ## Defectos concretos
 
-| # | Defecto | Ejemplo observado | Prueba |
+| # | Defecto (corregido en M1 salvo el 8) | Ejemplo observado | Prueba |
 |---|---|---|---|
 | 1 | Nivel leído solo del título | Senior sin «senior» en el título | `test_senior_level_field_is_penalized` |
 | 2 | Ídem para nivel inicial | Junior sin «junior» en el título | `test_junior_level_field_counts_as_entry_level` |
@@ -78,3 +78,40 @@ Causa: **10 de 16** ofertas de nivel inicial no dicen «junior» en el título y
 4. Reducir o condicionar el +8 de ubicación; detectar «solo residentes en …».
 5. Filtrar por categoría (Comercial, Marketing, Contenido) como incompatibilidad blanda configurable.
 6. Medir antes y después con estas pruebas y con un conjunto etiquetado mayor; objetivo inicial: precisión ≥ 70 % sin bajar el recall de TI inicial.
+
+## Resultados M1 (2026-10-21)
+
+Reproducible con `python scripts/eval_matching.py SNAPSHOT.json [--details]` (el snapshot de 326 ofertas se guarda fuera del repositorio; `--fetch` lo descarga con una consulta). Perfil: `DEFAULT_PROFILE`. Etiquetas: nivel y categoría publicados por la fuente (relevante = inicial y técnica; dudosa = Semi Senior técnica).
+
+| Paso (commit) | Sobre umbral | Precisión | Con dudosas | Recall | Top 10 relevantes / dudosas / no | Puntuar 326 |
+|---|---|---|---|---|---|---|
+| Línea base (`d405e2c`) | 11 | 0,364 | 0,636 | 0,571 | 3 / 3 / 4 | 0,33 s |
+| Nivel de la fuente + «Nivel buscado» (`e6abc08`) | 7 | 0,857 | 0,857 | 0,857 | 7 / 1 / 2 | 0,33 s |
+| Años de experiencia (`6ea1251`) | 7 | 0,857 | 0,857 | 0,857 | 6 / 1 / 3 | 0,46 s |
+| «redes sociales», «soporte al cliente» (`0bd1c4b`) | 6 | **1,0** | 1,0 | 0,857 | 6 / 1 / 3 | 0,34 s |
+| Ubicación y residencia (`f063e27`) | 6 | 1,0 | 1,0 | 0,857 | 6 / 1 / 3 | 0,38 s |
+| Afinidad requerida para nivel y ubicación (`202b9d0`) | 6 | 1,0 | 1,0 | 0,857 | **6 / 4 / 0** | 0,30 s |
+
+Detalle por cambio:
+
+- **Años:** la advertencia de 5+ años pasó de 96 a 87 ofertas. Se revisaron a mano las 78 que cambiaron: desaparecieron los falsos de edad, antigüedad de la empresa y rangos, y aparecieron 73 avisos reales de 3–4 años.
+- **Habilidades:** 11 ofertas perdieron la coincidencia de `redes` o `soporte`; las 11 eran de marketing, ventas o atención al cliente.
+- **Ubicación:** 44 ofertas que listan países elegibles sin Chile reciben ahora un aviso y −20. Ninguna frase de residencia incompatible en el snapshot (las 6 «based in Latin America» son compatibles).
+- **Única relevante bajo el umbral:** una oferta junior de front-end WordPress sin ninguna habilidad del perfil de prueba.
+
+### Límites de esta medición
+
+- **Circularidad:** las etiquetas y el matching usan el mismo campo `Nivel`. Se compensó revisando a mano la lista sobre el umbral (las 6 son puestos junior técnicos) y el top 10.
+- **Muestra pequeña:** solo 7 ofertas relevantes, de una fuente y un día.
+- **Segundo perfil** (analista de datos junior, sintético): el snapshot no tiene vacantes junior de datos, así que la precisión no es medible. Antes: 7 sobre el umbral, todas Semi Senior o ajenas. Ahora: 2, ambas junior técnicas con SQL.
+- Siguiente paso: acumular un conjunto etiquetado de varias fechas y fuentes (ver [FUENTES.md](FUENTES.md)).
+
+### Rendimiento de la API (326 ofertas, servidor local, 5 peticiones por ruta)
+
+| Versión | `/api/dashboard` | `/api/jobs` y `/api/tracking` |
+|---|---|---|
+| Fin de ronda 2 (`1483fe7`) | ~0,45 s | ~0,43 s |
+| Inicio de M1 (`92229db`, caché de `norm`) | ~0,34 s | ~0,33 s |
+| Caché de puntajes (`95b2433`) | 1.ª petición ~0,35 s; siguientes **~0,02 s** | ~0,02 s |
+
+La cifra de 2,5 s del informe de la ronda 3 fue una única petición en frío, con Chrome cargando a la vez; no es reproducible.

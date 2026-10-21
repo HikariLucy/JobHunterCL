@@ -100,7 +100,7 @@ Datos: carpetas temporales fuera del repositorio. `data/jobs.sqlite3` solo se ab
 | MVP tras separar dependencias | `.\INICIAR-WINDOWS.bat` en el mismo clon | Resuelve `requirements-streamlit.txt` → `requirements.txt` e inicia la instalación de Streamlit; **falló por disco lleno** (`Errno 28`). El BAT mostró el error y la ayuda. Arranque del MVP en limpio **no verificado**. |
 | Puntuaciones | 326 ofertas reales, perfil por defecto | Ver [ANALISIS_PUNTAJES.md](ANALISIS_PUNTAJES.md): 11 sobre el umbral, precisión ≈ 36 %, recall de TI inicial ≈ 57 %, 7 defectos documentados como `xfail` estrictos. |
 | UX de búsqueda | Vitest + Chrome real (escritorio y 390×844 emulado por DevTools) | Botón deshabilitado durante la espera con el tiempo restante (sin 429 ni error en consola); 5 secciones sin desborde a 390 px. `Retry-After` real (1785 s observado). |
-| Rendimiento | Medición con las 326 ofertas | `/api/jobs` 1,3 s y `/api/dashboard` 2,5 s. Puntuar: 1,32 s → 0,78 s con caché de `norm()`, resultados idénticos. |
+| Rendimiento | Medición con las 326 ofertas | Puntuar: 1,32 s → 0,78 s con caché de `norm()`, resultados idénticos. *Corrección posterior:* los 1,3 s / 2,5 s de la API eran una única petición en frío; con mediciones repetidas el dashboard tardaba ~0,45 s (ver ANALISIS_PUNTAJES.md). |
 
 ### Cambios de esta ronda
 

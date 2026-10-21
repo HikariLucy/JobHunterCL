@@ -28,10 +28,12 @@
 - [x] Importar historial de estados desde respaldos.
 
 ## M1 · Búsqueda adaptada a Chile
-- [ ] Perfil fiel verificado: experiencia, ubicación, modalidad, remuneración, inglés, seniority. *(campos disponibles en el panel; falta usarlos en el matching)*
+- [ ] Perfil fiel verificado: experiencia, ubicación, modalidad, remuneración, inglés, seniority. *(«Nivel buscado» ya se usa en el matching; faltan modalidad, remuneración e inglés)*
 - [ ] Obtener descripción completa por APIs públicas antes de puntuar.
-- [ ] Mejorar ranking: habilidades obligatorias vs deseables, incompatibilidades duras y explicaciones. *(línea base y 7 defectos medidos: docs/ANALISIS_PUNTAJES.md)*
-- [ ] Conectores adicionales (solo endpoints permitidos), intervalos, backoff y robots/ToS por plataforma.
+- [x] Corregir los 7 defectos medidos del ranking (nivel de la fuente, años, falsos amigos, ubicación): precisión 0,36 → 1,0, recall 0,57 → 0,86 en 326 ofertas. *(docs/ANALISIS_PUNTAJES.md)*
+- [ ] Mejorar ranking: habilidades obligatorias vs deseables, incompatibilidades duras y explicaciones.
+- [x] Dashboard rápido: caché de puntajes (~0,34 s → ~0,02 s).
+- [ ] Conectores adicionales (solo endpoints permitidos), intervalos, backoff y robots/ToS por plataforma. *(propuesta verificada: docs/FUENTES.md; primero API v0 de Get on Board)*
 - [ ] Pruebas con fixtures reales anonimizados y análisis de duplicados entre fuentes.
 
 ## M2 · Preparación de postulaciones
