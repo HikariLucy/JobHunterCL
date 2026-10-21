@@ -53,6 +53,12 @@ def test_unrelated_commercial_role_stays_low():
     assert s < THRESHOLD
 
 
+def test_level_and_location_need_profile_affinity():
+    """Un junior remoto sin cargo ni habilidad del perfil sumaba 26 (nivel + ubicación)."""
+    s, pos, warns = score(job("Appointment Setter", "Agendar reuniones.", level="Junior", category="Comercial y Ventas"))
+    assert s == 0 and not pos and "No se detectaron coincidencias claras con el perfil" in warns
+
+
 def test_explicit_five_years_is_flagged():
     _, _, warns = score(job("Backend Developer", "Requisitos: 5+ years of experience con Python."))
     assert YEARS in warns
@@ -133,7 +139,7 @@ def test_networking_and_it_support_still_match():
 def test_compatible_or_negated_residency_is_not_restricted():
     for text in ("Candidates must be based in Latin America.", "No tienes que vivir en CDMX.",
                  "Solo residentes en Chile."):
-        _, pos, warns = score(job("Backend Developer", text))
+        _, pos, warns = score(job("Backend Developer", "Python. " + text))
         assert any("Ubicación" in p for p in pos), text
         assert not any("restricción" in w for w in warns), text
 

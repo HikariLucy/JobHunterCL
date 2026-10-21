@@ -191,13 +191,16 @@ def evaluate(job: dict, profile: dict) -> tuple[int, list[str], list[str]]:
     if present:
         score += min(42, len(present) * 7)
         positive.append("Coincidencias técnicas: " + ", ".join(present[:8]))
+    # Nivel y ubicación solo suman si la oferta tiene algo del perfil (cargo o habilidad):
+    # si no, un puesto junior de ventas «remoto» acumulaba 26 puntos sin afinidad alguna.
+    affinity = bool(positive)
     wanted = wanted_levels(profile)
     level = source_meta(job.get("description", "")).get("level")
     offer = LEVEL_CLASS.get(level)
     if any(contains(title, k) for k in ("junior", "jr", "trainee", "practica", "entry level", "sin experiencia")):
         offer = offer or "inicial"
     senior_title = any(contains(title, k) for k in ("senior", "sr", "staff", "principal", "lead", "jefe", "gerente", "manager", "architect"))
-    if offer in wanted:
+    if offer in wanted and affinity:
         score += LEVEL_BONUS[offer]
         positive.append("Nivel inicial indicado" if offer == "inicial" else f"Nivel buscado: {level or offer}")
     if "senior" not in wanted and (offer == "senior" or senior_title):
@@ -218,8 +221,9 @@ def evaluate(job: dict, profile: dict) -> tuple[int, list[str], list[str]]:
     loc_terms = location_terms(profile)
     restricted = residency_restriction(body, loc_terms)
     if loc_terms and any(contains(location, x) for x in loc_terms) and not restricted:
-        score += 8
-        positive.append("Ubicación/modalidad de interés")
+        if affinity:
+            score += 8
+            positive.append("Ubicación/modalidad de interés")
     elif loc_terms and is_place_list(location):
         score -= 20
         warnings.append("Ubicación fuera de tus zonas de interés: " + job.get("location", "")[:80])
