@@ -1,5 +1,6 @@
 """Búsqueda manual y estado del programador."""
 from __future__ import annotations
+import math
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -23,5 +24,6 @@ def run_search(db=Depends(get_db), profile=Depends(get_profile)):
     except search.SearchBusy as exc:
         raise HTTPException(409, str(exc)) from None
     except search.CooldownActive as exc:
+        wait = max(1, math.ceil((exc.next_allowed - search.utcnow()).total_seconds()))
         raise HTTPException(429, {"message": str(exc), "next_allowed_at": exc.next_allowed.isoformat()},
-                            headers={"Retry-After": "60"}) from None
+                            headers={"Retry-After": str(wait)}) from None

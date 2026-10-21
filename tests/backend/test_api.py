@@ -3,7 +3,7 @@ import json
 from fastapi.testclient import TestClient
 
 from backend.main import create_app
-from jobhunter.storage import job_id
+from jobhunter.storage import connection, job_id
 
 from .conftest import JOBS
 
@@ -199,3 +199,15 @@ def test_serves_spa_when_built(settings, tmp_path):
         assert c.get("/assets/app.js").status_code == 200
         assert c.get("/api/inexistente").status_code == 404
         assert "root" in c.get("/../../secret").text
+
+
+def test_search_cooldown_returns_429_with_real_retry_after(client, settings):
+    from backend.services import search
+    from jobhunter.storage import set_setting
+    db = connection(settings.db_path)
+    set_setting(db, search.LAST_SCAN, search.utcnow().isoformat())
+    db.close()
+    r = client.post("/api/search")
+    assert r.status_code == 429
+    assert r.json()["detail"]["next_allowed_at"]
+    assert 25 * 60 < int(r.headers["Retry-After"]) <= 30 * 60  # espera mínima por defecto: 30 min
