@@ -53,6 +53,7 @@ if errorlevel 1 (
 
 echo [3/3] Iniciando JobHunter CL...
 echo Deja esta ventana abierta. Para cerrar: Ctrl+C o cierra la ventana.
+echo Si al cerrar Windows pregunta "Desea terminar el trabajo por lotes S/N", responde S.
 echo.
 ".venv\Scripts\python.exe" start.py %*
 if errorlevel 1 goto :fail

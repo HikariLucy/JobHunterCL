@@ -31,3 +31,6 @@ cv/
 cookies*.json
 storage_state*.json
 .playwright/
+
+# Respaldos exportados desde el panel (contienen perfil, notas y seguimiento)
+jobhunter_respaldo*.json
