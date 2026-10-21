@@ -126,6 +126,46 @@ def wanted_levels(profile: dict) -> set[str]:
     return found or {"inicial"}
 
 
+LOCATION_SYNONYMS = {
+    "latam": ("latin america", "latinoamerica", "america latina", "latam"),
+    "remote": ("remote", "remoto", "anywhere"),
+    "remoto": ("remoto", "remote", "anywhere"),
+}
+REMOTE_WORDS = ("remoto", "remote", "anywhere", "teletrabajo", "hibrido", "hybrid")
+_UNKNOWN_LOCATION = ("no indicada", "verificar en oferta")
+# Restricción explícita y estrecha («solo residentes en X», «must be based in X»);
+# no se usa «based in» suelto porque suele describir a la empresa.
+_RESTRICTION = re.compile(
+    r"(?<!no )(?:(?:solo|solamente|unicamente|exclusivamente|only)\s+(?:para\s+)?"
+    r"(?:residentes|residents|candidatos|candidates|personas|applicants)\s+(?:que\s+(?:residan|vivan)\s+)?"
+    r"(?:en|in|de|of|from|based in|located in)"
+    r"|(?:must|debes?|deberas|es necesario)\s+(?:be\s+)?(?:based|located|reside|live|residir|vivir|estar ubicad[oa])\s+(?:in|en))"
+    r"\s+([a-z][a-z ,]{2,60})")
+
+
+def location_terms(profile: dict) -> list[str]:
+    terms = []
+    for raw in profile.get("locations", []):
+        key = norm(raw)
+        if key:
+            terms.extend(LOCATION_SYNONYMS.get(key, (key,)))
+    return list(dict.fromkeys(terms))
+
+
+def is_place_list(location: str) -> bool:
+    """Ubicación con lugares concretos (no remota ni desconocida)."""
+    return bool(location) and not any(contains(location, w) for w in REMOTE_WORDS + _UNKNOWN_LOCATION)
+
+
+def residency_restriction(text: str, loc_terms: list[str]) -> str | None:
+    """Lugar exigido para residir si es ajeno a las zonas del perfil; None si no hay o es compatible."""
+    for m in _RESTRICTION.finditer(text):
+        place = m.group(1).split(" para ")[0].strip(" ,")
+        if not any(contains(place, x) for x in loc_terms):
+            return place[:60]
+    return None
+
+
 def evaluate(job: dict, profile: dict) -> tuple[int, list[str], list[str]]:
     """Devuelve score 0-100, motivos a favor y advertencias."""
     title = norm(job.get("title", ""))
@@ -175,10 +215,17 @@ def evaluate(job: dict, profile: dict) -> tuple[int, list[str], list[str]]:
         warnings.append(f"Pide {years} años de experiencia")
     if any(contains(all_text, k) for k in ("english c1", "ingles avanzado", "fluent english", "native english")):
         warnings.append("Revisar nivel de inglés exigido")
-    loc_terms = [norm(x) for x in profile.get("locations", []) if x.strip()]
-    if loc_terms and any(contains(location, x) for x in loc_terms):
+    loc_terms = location_terms(profile)
+    restricted = residency_restriction(body, loc_terms)
+    if loc_terms and any(contains(location, x) for x in loc_terms) and not restricted:
         score += 8
         positive.append("Ubicación/modalidad de interés")
+    elif loc_terms and is_place_list(location):
+        score -= 20
+        warnings.append("Ubicación fuera de tus zonas de interés: " + job.get("location", "")[:80])
+    if restricted:
+        score -= 20
+        warnings.append("Posible restricción de residencia: " + restricted)
     if any(contains(location, x) for x in ("united states only", "us only", "usa only", "canada only")):
         score -= 40
         warnings.append("Posible restricción de residencia")

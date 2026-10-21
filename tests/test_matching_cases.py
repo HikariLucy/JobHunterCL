@@ -3,10 +3,9 @@
 Los textos son sintéticos: reproducen el patrón observado sin copiar ofertas
 ni nombres de empresas. Perfil: `DEFAULT_PROFILE` (no es el perfil del usuario).
 
-- Las pruebas normales fijan el comportamiento correcto actual.
-- Las marcadas `xfail(strict=True)` documentan defectos conocidos que M1 debe
-  corregir. Al corregirlos pasarán, el xfail estricto fallará y habrá que
-  quitar la marca. Ver docs/ANALISIS_PUNTAJES.md.
+- Las pruebas con docstring «Antes: …» eran los 7 defectos documentados como
+  xfail estrictos; M1 los corrigió. Medición antes/después: scripts/eval_matching.py
+  y docs/ANALISIS_PUNTAJES.md.
 """
 import pytest
 
@@ -131,7 +130,22 @@ def test_networking_and_it_support_still_match():
     assert any("redes" in p and "soporte" in p for p in pos)
 
 
-# --- Defectos conocidos (M1) ---------------------------------------------------------
+def test_compatible_or_negated_residency_is_not_restricted():
+    for text in ("Candidates must be based in Latin America.", "No tienes que vivir en CDMX.",
+                 "Solo residentes en Chile."):
+        _, pos, warns = score(job("Backend Developer", text))
+        assert any("Ubicación" in p for p in pos), text
+        assert not any("restricción" in w for w in warns), text
+
+
+def test_country_list_without_profile_zone_is_flagged():
+    """44/326 ofertas listan países elegibles sin Chile y no tenían advertencia."""
+    s_out, _, warns = score(job("Backend Developer", "Python.", location="Argentina, Colombia, Uruguay", level="Junior"))
+    s_in, _, _ = score(job("Backend Developer", "Python.", location="Perú, Colombia, Chile", level="Junior"))
+    assert s_out < s_in and any("fuera de tus zonas" in w for w in warns)
+    _, _, warns = score(job("Backend Developer", "Python.", location="No indicada (verificar en oferta)"))
+    assert not any("fuera de tus zonas" in w for w in warns)
+
 
 def test_social_media_is_not_networking():
     """Antes: la habilidad «redes» coincidía con «redes sociales»."""
@@ -146,7 +160,7 @@ def test_customer_service_is_not_it_support():
     assert not any("soporte" in p for p in pos)
 
 
-@pytest.mark.xfail(strict=True, reason="'Remoto' suma ubicación de interés aunque exija residir en otro país (282/326)")
 def test_remote_bonus_respects_residency_restriction():
+    """Antes: «Remoto» sumaba ubicación aunque la oferta exigiera residir en otro país."""
     _, pos, _ = score(job("Backend Developer", "Python. Remoto solo para residentes en Argentina."))
     assert not any("Ubicación" in p for p in pos)
