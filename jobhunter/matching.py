@@ -5,9 +5,40 @@ import unicodedata
 from functools import lru_cache
 
 
+# Guiones tipográficos -> "-" antes de quitar lo no ASCII: si no, «1–3 años» se leía «13 años».
+_DASHES = str.maketrans(dict.fromkeys("‐‑‒–—―−", "-"))
+
+
 @lru_cache(maxsize=512)  # contains() vuelve a normalizar el mismo texto por cada término
 def norm(s: str) -> str:
-    return " ".join(unicodedata.normalize("NFKD", str(s).lower()).encode("ascii", "ignore").decode().split())
+    text = str(s).lower().translate(_DASHES)
+    return " ".join(unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().split())
+
+
+# «N años», «N+ years», «+N años», «N-M años», «N a M años», «N o más años».
+# Se exige contexto de experiencia para no confundir la edad («mayor de 18 años»)
+# ni la antigüedad de la empresa («más de 12 años creciendo»).
+_YEARS = re.compile(r"(\+\s*)?\b(\d{1,2})(?:\s*(?:-|a|to)\s*(\d{1,2}))?\s*(\+|o mas)?\s*(?:anos|years?|yrs)\b")
+_YEARS_BEFORE = re.compile(r"(?:minimo|al menos|at least|requisito|requirement|over|more than)\W*(?:de\W*)?$")
+_YEARS_AFTER = re.compile(r"^\W*(?:\w+\W+){0,6}?(?:experiencia|experience|exp)\b")
+_AGE = re.compile(r"(?:mayor(?:es)? de|edad|age[sd]?)\W*$")
+_AGE_AFTER = re.compile(r"^\W*(?:de edad|old|of age)\b")
+
+
+def required_years(text: str) -> int | None:
+    """Años de experiencia exigidos en un texto normalizado: el menor de cada rango y
+    el mayor entre menciones. None si no hay una exigencia clara."""
+    found = []
+    for m in _YEARS.finditer(text):
+        before, after = text[max(0, m.start() - 25):m.start()], text[m.end():m.end() + 60]
+        if _AGE.search(before) or _AGE_AFTER.search(after):
+            continue
+        years = int(m.group(2))
+        if years > 15:  # «más de 50 años de experiencia» describe a la empresa, no al cargo
+            continue
+        if m.group(1) or m.group(4) or _YEARS_BEFORE.search(before) or _YEARS_AFTER.search(after):
+            found.append(years)
+    return max(found) if found else None
 
 
 def contains(text: str, phrase: str) -> bool:
@@ -105,9 +136,13 @@ def evaluate(job: dict, profile: dict) -> tuple[int, list[str], list[str]]:
     elif offer == "intermedio" and offer not in wanted:
         score -= 15
         warnings.append("Nivel intermedio (Semi Senior): suele pedir experiencia previa")
-    if re.search(r"\b(?:[5-9]|1\d)\s*(?:\+|o mas)?\s*(?:anos|years)\b", all_text):
+    years = required_years(all_text)
+    if years is not None and years >= 5 and "senior" not in wanted:
         score -= 24
         warnings.append("Puede exigir 5 o más años de experiencia")
+    elif years is not None and years >= 3 and wanted == {"inicial"}:
+        score -= 12
+        warnings.append(f"Pide {years} años de experiencia")
     if any(contains(all_text, k) for k in ("english c1", "ingles avanzado", "fluent english", "native english")):
         warnings.append("Revisar nivel de inglés exigido")
     loc_terms = [norm(x) for x in profile.get("locations", []) if x.strip()]

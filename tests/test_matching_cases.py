@@ -11,7 +11,7 @@ ni nombres de empresas. Perfil: `DEFAULT_PROFILE` (no es el perfil del usuario).
 import pytest
 
 from jobhunter.config import DEFAULT_PROFILE
-from jobhunter.matching import evaluate
+from jobhunter.matching import evaluate, norm, required_years
 
 THRESHOLD = DEFAULT_PROFILE["min_score"]
 
@@ -87,21 +87,45 @@ def test_seniority_preference_changes_level_scoring():
     assert not any("senior" in w.lower() for w in warns)
 
 
-# --- Defectos conocidos (M1) ---------------------------------------------------------
-
-
-
-@pytest.mark.xfail(strict=True, reason="norm() elimina el guion largo: '1–3 years' se lee como '13 years'")
 def test_year_range_with_en_dash_is_not_five_plus():
+    """Antes: norm() eliminaba el guion largo y «1–3 years» se leía «13 years»."""
     _, _, warns = score(job("Backend Developer", "1–3 years of experience con Python.", level="Junior"))
     assert YEARS not in warns
 
 
-@pytest.mark.xfail(strict=True, reason="Cualquier 'N años' cuenta como experiencia exigida, incluida la edad")
 def test_minimum_age_is_not_experience():
+    """Antes: cualquier «N años» contaba como experiencia exigida, incluida la edad."""
     _, _, warns = score(job("Chat Support Agent", "Requisito: ser mayor de 18 años.", level="Sin experiencia requerida"))
     assert YEARS not in warns
 
+
+@pytest.mark.parametrize("text, years", [
+    ("1–3 years of experience", 1),
+    ("ser mayor de 18 años", None),
+    ("18 years old", None),
+    ("con más de 12 años creciendo en el mercado", None),
+    ("empresa con más de 50 años de experiencia en el continente", None),
+    ("Mínimo 5 años en desarrollo", 5),
+    ("+5 años en ciberseguridad", 5),
+    ("5+ years of professional experience", 5),
+    ("5 o más años de experiencia", 5),
+    ("3 a 5 años de experiencia", 3),
+    ("at least 4 years", 4),
+    ("2 años de experiencia en Python 3", 2),
+])
+def test_required_years(text, years):
+    assert required_years(norm(text)) == years
+
+
+def test_three_or_four_years_warn_entry_profiles_only():
+    _, _, warns = score(job("QA Engineer", "3+ años de experiencia en QA.", level="Junior"))
+    assert "Pide 3 años de experiencia" in warns
+    mid = {**DEFAULT_PROFILE, "preferences": {"seniority": ["semi senior"]}}
+    _, _, warns = evaluate(job("QA Engineer", "3+ años de experiencia en QA."), mid)
+    assert not any("años" in w for w in warns)
+
+
+# --- Defectos conocidos (M1) ---------------------------------------------------------
 
 @pytest.mark.xfail(strict=True, reason="La habilidad 'redes' coincide con 'redes sociales'")
 def test_social_media_is_not_networking():
