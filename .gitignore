@@ -14,3 +14,20 @@ __pycache__/
 *.docx
 *.json.bak
 .DS_Store
+
+# Frontend (dependencias y compilado se generan localmente)
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# CV personales y material de postulación: nunca al repositorio
+cv/
+*.tex
+*.cls
+*.aux
+*.log
+*.out
+# Sesiones de navegador / Playwright futuras
+cookies*.json
+storage_state*.json
+.playwright/
