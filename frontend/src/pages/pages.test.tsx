@@ -76,6 +76,27 @@ describe("navegación y páginas", () => {
     expect(screen.getByText(/la frecuencia real será cada 6.5 h/)).toBeInTheDocument();
   });
 
+  it("Configuración informa el historial restaurado al importar un respaldo", async () => {
+    const user = userEvent.setup();
+    const fetch = mockFetch({
+      ...base,
+      "GET /api/config": () => ({ sources: { getonbrd: true, remotive: false, greenhouse_boards: [], lever_sites: [] },
+                                  scan_interval_minutes: 0, min_interval_minutes: 30 }),
+      "GET /api/search/status": () => SEARCH,
+      "POST /api/backup/import": () => ({ imported: 3, profile_restored: true, safety_copy: "jobs-pre-import-x.sqlite3",
+                                          history_imported: 4, history_skipped: 1 }),
+    });
+    renderAt("/configuracion");
+    const backup = '{"format":"jobhuntercl-backup-v1","jobs":[]}';
+    await user.upload(await screen.findByLabelText("Importar respaldo"),
+                      new File([backup], "respaldo.json", { type: "application/json" }));
+    await user.click(screen.getByRole("button", { name: "Importar" }));
+    expect(await screen.findByText(/3 registros importados y perfil restaurado/)).toHaveTextContent(
+      /4 cambios de estado añadidos al historial\. 1 entradas del historial omitidas/);
+    const post = fetch.mock.calls.find(([, init]) => init?.method === "POST");
+    expect(String(post?.[1]?.body)).toBe(backup);
+  });
+
   it("Perfil guarda y confirma", async () => {
     const user = userEvent.setup();
     const profile = { titles: ["soporte ti"], skills: ["python"], locations: ["chile"], min_score: 30,

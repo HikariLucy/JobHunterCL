@@ -137,6 +137,8 @@ export interface ImportResult {
   imported: number;
   profile_restored: boolean;
   safety_copy: string | null;
+  history_imported: number;
+  history_skipped: number;
 }
 
 export interface Health {

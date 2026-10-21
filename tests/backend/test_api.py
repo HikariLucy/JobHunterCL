@@ -109,6 +109,75 @@ def test_backup_export_import_roundtrip(seeded, settings, tmp_path):
         assert c2.get(f"/api/jobs/{ID1}").json()["status"] == "Preparada"
 
 
+def _other_client(settings, tmp_path, name="otro"):
+    other = settings.__class__(data_dir=tmp_path / name, frontend_dist=settings.frontend_dist,
+                               allowed_hosts=settings.allowed_hosts, scheduler_enabled=False)
+    return TestClient(create_app(other))
+
+
+def _post_backup(c, payload):
+    body = payload if isinstance(payload, bytes) else json.dumps(payload).encode("utf-8")
+    return c.post("/api/backup/import", content=body, headers={"Content-Type": "application/json"})
+
+
+def test_backup_restores_status_history_idempotently(seeded, settings, tmp_path):
+    seeded.patch(f"/api/jobs/{ID1}", json={"status": "Revisar"})
+    seeded.patch(f"/api/jobs/{ID1}", json={"status": "Postulada"})
+    original = seeded.get(f"/api/jobs/{ID1}/history").json()
+    exported = seeded.get("/api/backup/export").content
+
+    with _other_client(settings, tmp_path) as c2:
+        first = _post_backup(c2, exported).json()
+        assert first["history_imported"] == 2 and first["history_skipped"] == 0
+        restored = c2.get(f"/api/jobs/{ID1}/history").json()
+        strip = lambda rows: [{k: r[k] for k in ("job_id", "old_status", "new_status", "changed_at", "origin")} for r in rows]
+        assert strip(restored) == strip(original)
+        again = _post_backup(c2, exported).json()
+        assert again["history_imported"] == 0 and again["history_skipped"] == 0
+        assert len(c2.get(f"/api/jobs/{ID1}/history").json()) == 2
+
+
+def test_backup_without_history_still_imports(seeded, settings, tmp_path):
+    """Respaldos del MVP Streamlit o de versiones anteriores: sin `status_history`."""
+    payload = seeded.get("/api/backup/export").json()
+    del payload["status_history"]
+    with _other_client(settings, tmp_path) as c2:
+        r = _post_backup(c2, payload)
+        assert r.status_code == 200, r.text
+        assert r.json()["imported"] == 2 and r.json()["history_imported"] == 0
+        payload["status_history"] = None
+        assert _post_backup(c2, payload).status_code == 200
+
+
+def test_backup_history_skips_invalid_and_orphan_entries(seeded, settings, tmp_path):
+    payload = seeded.get("/api/backup/export").json()
+    good = {"job_id": ID1, "old_status": "Nueva", "new_status": "Revisar",
+            "changed_at": "2026-10-01T12:00:00+00:00", "origin": "api"}
+    payload["status_history"] = [
+        good,
+        {**good, "changed_at": "2026-10-02T12:00:00+00:00", "origin": "<script>"},  # origen saneado
+        {**good, "new_status": "Contratado"},       # estado desconocido
+        {**good, "changed_at": "ayer"},             # fecha inválida
+        {**good, "job_id": "../../etc"},            # identificador inválido
+        {**good, "job_id": "f" * 24},               # oferta inexistente
+        "texto",
+    ]
+    with _other_client(settings, tmp_path) as c2:
+        r = _post_backup(c2, payload).json()
+        assert r["history_imported"] == 2 and r["history_skipped"] == 5
+        origins = {h["origin"] for h in c2.get(f"/api/jobs/{ID1}/history").json()}
+        assert origins == {"api", "import"}
+
+
+def test_backup_with_malformed_history_is_rejected_without_changes(seeded, settings, tmp_path):
+    payload = seeded.get("/api/backup/export").json()
+    payload["status_history"] = {"no": "es una lista"}
+    with _other_client(settings, tmp_path) as c2:
+        assert _post_backup(c2, payload).status_code == 422
+        assert c2.get("/api/jobs").json()["total"] == 0
+        assert not (tmp_path / "otro" / "backups").exists()
+
+
 def test_backup_import_rejects_garbage(client):
     assert client.post("/api/backup/import", content=b"no-json").status_code == 422
     assert client.post("/api/backup/import", content=b'{"jobs": []}').status_code == 422

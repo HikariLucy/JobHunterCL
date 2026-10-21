@@ -120,6 +120,8 @@ function BackupCard() {
       {result && (
         <Notice tone="success">
           {result.imported} registros importados{result.profile_restored ? " y perfil restaurado" : ""}.
+          {result.history_imported > 0 && ` ${result.history_imported} cambios de estado añadidos al historial.`}
+          {result.history_skipped > 0 && ` ${result.history_skipped} entradas del historial omitidas (inválidas o de ofertas que no están en el respaldo).`}
           {result.safety_copy && ` Copia previa: ${result.safety_copy}.`}
         </Notice>
       )}
