@@ -1,11 +1,10 @@
 # Núcleo compartido (conectores, matching, almacenamiento)
 requests>=2.31,<3
 beautifulsoup4>=4.12,<5
-# Nueva interfaz local: API FastAPI + servidor ASGI
+# Panel local: API FastAPI + servidor ASGI
 fastapi>=0.115,<1
 uvicorn>=0.30,<1
-# MVP anterior (se mantiene hasta comprobar la paridad)
-streamlit>=1.37,<2
 # Pruebas
 pytest>=8,<10
 httpx>=0.27,<1
+# El MVP Streamlit (app.py) usa además requirements-streamlit.txt.

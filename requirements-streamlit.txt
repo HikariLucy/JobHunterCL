@@ -1,0 +1,4 @@
+# MVP anterior (app.py), se mantiene hasta comprobar la paridad del panel nuevo.
+# Lo instalan INICIAR-WINDOWS.bat e iniciar-linux.sh. Ocupa ~290 MB con sus dependencias.
+-r requirements.txt
+streamlit>=1.37,<2

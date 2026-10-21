@@ -52,7 +52,7 @@ if errorlevel 1 (
 if errorlevel 1 (
   echo [2/3] Instalando dependencias. Puede tardar unos minutos...
   ".venv\Scripts\python.exe" -m ensurepip --upgrade >nul 2>nul
-  ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r requirements.txt
+  ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r requirements-streamlit.txt
   if errorlevel 1 (
     echo [ERROR] No se pudieron instalar las dependencias.
     echo Revisa conexion a internet, proxy o politicas del PC.

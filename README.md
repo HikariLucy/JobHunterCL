@@ -95,4 +95,4 @@ Arquitectura: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · Integración futur
 
 ## MVP anterior (Streamlit)
 
-Sigue disponible mientras se valida la paridad: `INICIAR-WINDOWS.bat` / `bash iniciar-linux.sh` (usa `launch.py`, puerto 8501). Comparte la misma base de datos; evita usar ambas interfaces a la vez.
+Sigue disponible mientras se valida la paridad: `INICIAR-WINDOWS.bat` / `bash iniciar-linux.sh` (usa `launch.py`, puerto 8501). Comparte la misma base de datos; evita usar ambas interfaces a la vez. Sus dependencias están aparte, en `requirements-streamlit.txt` (~290 MB con pandas/pyarrow); esos lanzadores las instalan la primera vez. El panel nuevo no las necesita.
