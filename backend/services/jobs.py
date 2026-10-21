@@ -1,5 +1,6 @@
 """Consulta, puntuación y seguimiento de ofertas (reutiliza jobhunter.matching)."""
 from __future__ import annotations
+import json
 import sqlite3
 
 from jobhunter.matching import evaluate, norm
@@ -10,9 +11,37 @@ class JobNotFound(LookupError):
     pass
 
 
+class _ScoreCache:
+    """Puntajes por oferta mientras no cambien el perfil ni el contenido puntuado.
+
+    Puntuar es lo más caro de cada petición (Dashboard, Explorar, Seguimiento) y el
+    resultado solo depende de título, descripción, ubicación y perfil. Al cambiar el
+    perfil se vacía; el tamaño queda acotado. Sin bloqueo: en el peor caso dos hilos
+    calculan lo mismo.
+    """
+    MAX = 20_000
+
+    def __init__(self):
+        self.profile_key: str | None = None
+        self.items: dict[tuple, tuple] = {}
+
+    def get(self, job: dict, profile: dict) -> tuple:
+        pkey = json.dumps(profile, sort_keys=True, ensure_ascii=False, default=str)
+        if pkey != self.profile_key or len(self.items) > self.MAX:
+            self.profile_key, self.items = pkey, {}
+        key = (job.get("id"), hash((job.get("title"), job.get("description"), job.get("location"))))
+        hit = self.items.get(key)
+        if hit is None:
+            hit = self.items[key] = evaluate(job, profile)
+        return hit
+
+
+_cache = _ScoreCache()
+
+
 def score(job: dict, profile: dict) -> dict:
-    s, reasons, warnings = evaluate(job, profile)
-    return {**job, "score": s, "reasons": reasons, "warnings": warnings}
+    s, reasons, warnings = _cache.get(job, profile)
+    return {**job, "score": s, "reasons": list(reasons), "warnings": list(warnings)}
 
 
 def all_scored(db: sqlite3.Connection, profile: dict) -> list[dict]:
