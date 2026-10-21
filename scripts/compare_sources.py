@@ -11,6 +11,13 @@ Perfil: DEFAULT_PROFILE. Etiquetas (ver docs/ANALISIS_PUNTAJES.md):
               del perfil, sin exigir más de 2 años, y nivel inicial o sin nivel declarado.
               (Una «Junior» que pide 3+ años NO es compatible.)
 - dudosa:     técnica, elegible, Semi Senior y sin exigir más de 2 años (posible acceso).
+
+Elegibilidad geográfica (matching.eligibility): «compatible» exige evidencia explícita.
+Las ofertas de elegibilidad «desconocida» que cumplen lo demás se cuentan aparte como
+«pendientes de verificar» (posibles oportunidades), nunca como compatibles confirmadas.
+
+Los snapshots anteriores a M1.3 no traen `geo`: se reconstruye desde las etiquetas que
+escribía entonces el conector (ver legacy_geo).
 """
 from __future__ import annotations
 import argparse
@@ -24,10 +31,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import requests  # noqa: E402
 
+from backend.services.geo import merge_evidence  # noqa: E402
 from jobhunter import collect  # noqa: E402
 from jobhunter.config import DEFAULT_PROFILE  # noqa: E402
-from jobhunter.matching import (contains, evaluate, is_place_list, location_terms, norm,  # noqa: E402
-                                required_years, residency_restriction, source_meta)
+from jobhunter.matching import (COMPATIBLE, INCOMPATIBLE, UNKNOWN, eligibility, evaluate,  # noqa: E402
+                                norm, required_years, source_meta)
 from jobhunter.storage import job_id  # noqa: E402
 
 TECH = {"programacion", "sysadmin / devops / qa", "data science / analytics", "machine learning / ai",
@@ -68,20 +76,41 @@ def fetch(out: Path) -> None:
     print(f"feed: {len(feed)} ofertas, api: {len(api)} ofertas, peticiones: {len(session.log)} {stats}")
 
 
+_LEGACY_SUFFIX = {" (híbrido)": "hybrid", " (presencial)": "no_remote"}
+
+
+def legacy_geo(job: dict) -> dict:
+    """Snapshot previo a M1.3 (sin `geo`): metadatos desde las etiquetas que escribía el
+    conector. «Remoto» = fully_remote; «Remoto (incluye …)» = remote_local sin países (la
+    API nunca los informó); «X (híbrido|presencial)» = países X, que la API sí informaba."""
+    if job.get("geo") is not None:
+        return job
+    loc = job.get("location", "")
+    if loc == "Remoto":
+        geo = {"modality": "fully_remote", "countries": []}
+    elif loc.startswith("Remoto (incluye"):
+        geo = {"modality": "remote_local", "countries": []}
+        job = {**job, "location": "Remoto (elegibilidad para Chile por confirmar)"}
+    else:
+        suffix = next((k for k in _LEGACY_SUFFIX if loc.endswith(k)), None)
+        if suffix is None:
+            return job
+        geo = {"modality": _LEGACY_SUFFIX[suffix], "countries": [c.strip() for c in loc[:-len(suffix)].split(",")]}
+    return {**job, "geo": {**geo, "evidence": "API Get on Board (reconstruido de snapshot previo)"}}
+
+
 def facts(job: dict, profile: dict) -> dict:
     meta = source_meta(job.get("description", ""))
-    loc = norm(job.get("location", ""))
-    zones = location_terms(profile)
-    restricted = residency_restriction(norm(job.get("description", "")), zones)
-    outside = is_place_list(loc) and not any(contains(loc, z) for z in zones)
     years = required_years(norm(f"{job.get('title', '')} {job.get('description', '')}"))
     tech = meta["category"] in TECH
-    eligible = not outside and not restricted
-    return {"tech": tech, "inicial": tech and meta["level"] in ENTRY, "eligible": eligible, "years": years,
-            "level": meta["level"],
-            "compatible": tech and eligible and (years is None or years <= 2)
-                          and (meta["level"] in ENTRY or meta["level"] is None),
-            "dudosa": tech and eligible and (years is None or years <= 2) and meta["level"] == "semi senior"}
+    elig = eligibility(job, profile)["status"]
+    light = years is None or years <= 2
+    early = meta["level"] in ENTRY or meta["level"] is None
+    return {"tech": tech, "inicial": tech and meta["level"] in ENTRY, "eligibility": elig, "years": years,
+            "level": meta["level"], "eligible": elig != INCOMPATIBLE,
+            "compatible": tech and elig == COMPATIBLE and light and early,  # confirmada
+            "pendiente": tech and elig == UNKNOWN and light and early,      # posible, por verificar
+            "dudosa": tech and elig != INCOMPATIBLE and light and meta["level"] == "semi senior"}
 
 
 def years_bucket(y):
@@ -94,6 +123,10 @@ def metrics(jobs: list[dict], profile: dict, threshold: int) -> dict:
     out = {"ofertas": len(rows), "tecnicas": sum(f["tech"] for _, f, _ in rows),
            "nivel_inicial": sum(f["inicial"] for _, f, _ in rows),
            "compatibles": sum(f["compatible"] for _, f, _ in rows),
+           "pendientes_de_verificar": sum(f["pendiente"] for _, f, _ in rows),
+           "elegibilidad": dict(collections.Counter(f["eligibility"] for _, f, _ in rows)),
+           "sobre_umbral_por_elegibilidad": dict(collections.Counter(
+               f["eligibility"] for (s, _, _), f, _ in rows if s >= threshold)),
            "dudosas": sum(f["dudosa"] for _, f, _ in rows),
            "inicial_que_pide_3_o_mas_anos": sum(f["inicial"] and (f["years"] or 0) >= 3 for _, f, _ in rows),
            "no_elegibles_desde_zonas": sum(not f["eligible"] for _, f, _ in rows),
@@ -106,6 +139,8 @@ def metrics(jobs: list[dict], profile: dict, threshold: int) -> dict:
         out[f"recall_{label}"] = round(good / total, 3) if total else None
     out["precision_compatible_o_dudosa"] = (round(sum(f["compatible"] or f["dudosa"] for f in hits) / len(hits), 3)
                                             if hits else None)
+    out["precision_compatible_o_pendiente"] = (round(sum(f["compatible"] or f["pendiente"] for f in hits) / len(hits), 3)
+                                               if hits else None)
     return out, rows
 
 
@@ -119,11 +154,15 @@ def main(argv=None) -> int:
         fetch(args.dir)
         return 0
     feed = json.loads((args.dir / "feed.json").read_text(encoding="utf-8"))
-    api = json.loads((args.dir / "api.json").read_text(encoding="utf-8"))
+    api = [legacy_geo(j) for j in json.loads((args.dir / "api.json").read_text(encoding="utf-8"))]
     req = json.loads((args.dir / "requests.json").read_text(encoding="utf-8"))
     profile, threshold = DEFAULT_PROFILE, int(DEFAULT_PROFILE.get("min_score", 30))
     fids, aids = {job_id(j["url"]) for j in feed}, {job_id(j["url"]) for j in api}
-    union = list({job_id(j["url"]): j for j in feed + api}.values())  # gana la API, como en la búsqueda
+    merged: dict[str, dict] = {}
+    for j in feed + api:  # como en la búsqueda: gana la API y se conserva la lista de países del feed
+        key = job_id(j["url"])
+        merged[key] = merge_evidence(merged[key], j) if key in merged else j
+    union = list(merged.values())
     report = {"solicitudes": {"feed": sum("jobs/feed" in r["url"] for r in req["log"]),
                               "api": sum("/api/v0/" in r["url"] for r in req["log"]),
                               "estados": dict(collections.Counter(r["status"] for r in req["log"])),
@@ -144,8 +183,9 @@ def main(argv=None) -> int:
             print(f"\n== {name}: puntaje >= {threshold} ==")
             for (s, pos, warn), f, j in sorted(details[name], key=lambda x: -x[0][0]):
                 if s >= threshold:
-                    tag = "compatible" if f["compatible"] else ("dudosa" if f["dudosa"] else ("inicial" if f["inicial"] else "-"))
-                    print(f"{s:3} {tag:<10} [{f['level']}] {j['title'][:55]} | {j['location'][:28]}")
+                    tag = ("compatible" if f["compatible"] else "pendiente" if f["pendiente"] else
+                           "dudosa" if f["dudosa"] else "inicial" if f["inicial"] else "-")
+                    print(f"{s:3} {tag:<10} {f['eligibility']:<12} [{f['level']}] {j['title'][:48]} | {j['location'][:40]}")
         print("\n== union: compatibles bajo el umbral ==")
         for (s, pos, warn), f, j in sorted(details["union"], key=lambda x: -x[0][0]):
             if s < threshold and f["compatible"]:
