@@ -100,7 +100,7 @@ def test_search_cooldown_and_dedup(db):
         search.run_search(db, PROFILE, clock=lambda: T0 + timedelta(minutes=10), source_factory=one)
     assert exc.value.next_allowed == T0 + timedelta(minutes=30)
     run = search.run_search(db, PROFILE, clock=lambda: T0 + timedelta(minutes=31), source_factory=one)
-    assert run["added"] == 0 and run["fetched"] == 2
+    assert run["added"] == 0 and run["fetched"] == 1  # duplicados de la misma pasada se cuentan una vez
 
 
 def test_failed_search_does_not_start_cooldown(db):

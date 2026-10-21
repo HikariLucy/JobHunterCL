@@ -19,8 +19,8 @@ from typing import Callable
 
 import requests
 
-from jobhunter.collect import build_sources
-from jobhunter.storage import get_setting, set_setting, upsert_jobs
+from jobhunter.collect import PartialFetch, build_sources
+from jobhunter.storage import get_setting, job_id, set_setting, upsert_jobs
 
 LAST_SCAN = "last_scan"
 INTERVAL_KEY = "scan_interval_minutes"
@@ -43,8 +43,11 @@ def utcnow() -> datetime:
 
 
 def min_interval(sources: dict) -> timedelta:
-    """Misma política que el MVP: 30 min, más 6 h si Remotive está activo (máx. 4 consultas/día)."""
-    return timedelta(hours=6 if sources.get("remotive") else 0, minutes=30)
+    """Política del MVP: 30 min, más 6 h si Remotive está activo (máx. 4 consultas/día).
+    La API de Get on Board hace ~11 peticiones por pasada: al menos 60 min."""
+    if sources.get("remotive"):
+        return timedelta(hours=6, minutes=30)
+    return timedelta(minutes=60 if sources.get("getonbrd_api") else 30)
 
 
 def parse_ts(value: str | None) -> datetime | None:
@@ -107,10 +110,18 @@ def run_search(db: sqlite3.Connection, profile: dict, trigger: str = "manual", *
             try:
                 jobs.extend(fetch_with_retries(fn, sleep=sleep))
                 contacted = True
+            except PartialFetch as exc:
+                # Se conservan las páginas ya obtenidas; no se repite toda la pasada.
+                jobs.extend(exc.jobs)
+                errors.append(f"{name}: parcial ({len(exc.jobs)} ofertas); {str(exc)[:150]}")
+                contacted = True
             except (requests.RequestException, ValueError, KeyError, TypeError, AttributeError) as exc:
                 errors.append(f"{name}: {str(exc)[:180]}")
                 if not isinstance(exc, (requests.ConnectionError, requests.Timeout)):
                     contacted = True
+        # La misma oferta puede llegar por varias fuentes (feed y API de Get on Board):
+        # se guarda una vez y gana la última fuente, la más completa.
+        jobs = list({job_id(j["url"]): j for j in jobs if str(j.get("url", "")).startswith("https://")}.values())
         added = upsert_jobs(db, jobs) if jobs else 0
         if contacted:
             # Toda consulta que llegó a la fuente cuenta para su límite, aunque no trajera ofertas.
