@@ -12,7 +12,7 @@ Buscador y organizador personal de ofertas laborales para Chile y empleos remoto
 ## Requisitos
 
 - **Python 3.11+**
-- **Node.js 20+** (solo para compilar el panel la primera vez y tras actualizar el código)
+- **Node.js 22 LTS o superior** (≥ 22.12 para compilar; las pruebas de frontend piden ≥ 22.22). Solo se usa para compilar el panel la primera vez y tras actualizar el código.
 
 ## Windows
 
@@ -35,7 +35,7 @@ py -m venv .venv
 ## Ubuntu
 
 ```bash
-sudo apt install python3 python3-venv nodejs npm   # Node 20+: usa NodeSource o nvm si la versión de apt es antigua
+sudo apt install python3 python3-venv   # Node.js 22+: instálalo con nvm o NodeSource (el de apt suele ser antiguo)
 git clone https://github.com/HikariLucy/jobhunter.git ~/proyectos/jobhunter
 cd ~/proyectos/jobhunter
 bash iniciar-jobhunter.sh

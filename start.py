@@ -74,7 +74,7 @@ def build_frontend(force: bool = False) -> bool:
     if npm is None:
         has_dist = (FRONTEND / "dist" / "index.html").is_file()
         print("[AVISO] No se encontró Node.js/npm; no se puede compilar el panel.", flush=True)
-        print("        Instala Node.js 20+ (https://nodejs.org) o copia frontend/dist desde otro equipo.", flush=True)
+        print("        Instala Node.js 22 LTS (https://nodejs.org) o copia frontend/dist desde otro equipo.", flush=True)
         return has_dist
     steps = []
     if not (FRONTEND / "node_modules").is_dir():
