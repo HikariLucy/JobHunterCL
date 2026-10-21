@@ -80,6 +80,13 @@ class Profile(BaseModel):
         return _clean_list(values)
 
 
+class Eligibility(BaseModel):
+    """Elegibilidad geográfica para las zonas del perfil (matching.eligibility)."""
+    status: Literal["compatible", "desconocida", "incompatible"]
+    evidence: str
+    basis: str
+
+
 class Job(BaseModel):
     id: str
     source: str
@@ -96,6 +103,7 @@ class Job(BaseModel):
     score: int
     reasons: list[str]
     warnings: list[str]
+    eligibility: Eligibility
 
 
 class JobPage(BaseModel):

@@ -13,7 +13,7 @@ ID1 = job_id(JOBS[0]["url"])
 def test_health_reports_schema(client):
     body = client.get("/api/health").json()
     assert body["status"] == "ok"
-    assert body["schema_version"] == 1
+    assert body["schema_version"] == 2
     assert "Postulada" in body["statuses"]
 
 

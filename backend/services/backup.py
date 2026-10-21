@@ -11,7 +11,7 @@ import re
 from datetime import datetime
 
 from jobhunter.config import save_profile
-from jobhunter.storage import STATUSES, export_backup, get_backup_profile, import_backup
+from jobhunter.storage import STATUSES, export_backup, get_backup_profile, import_backup, now
 
 from .. import db as dbmod
 from ..schemas import Profile
@@ -25,6 +25,8 @@ _ORIGIN = re.compile(r"^[a-z0-9_-]{1,32}$")
 def export(db, profile: dict) -> bytes:
     payload = json.loads(export_backup(db, profile))
     payload["status_history"] = [dict(r) for r in db.execute("SELECT * FROM status_history ORDER BY id")]
+    payload["job_geo"] = [{"job_id": r["job_id"], "modality": r["modality"], "countries": json.loads(r["countries"] or "[]"),
+                           "evidence": r["evidence"]} for r in db.execute("SELECT * FROM job_geo ORDER BY job_id")]
     return json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
 
 
@@ -87,6 +89,40 @@ def _import_history(db, entries: list[tuple]) -> tuple[int, int]:
     return added, skipped
 
 
+_MODALITIES = {"", "fully_remote", "remote_local", "hybrid", "no_remote", "temporarily_remote"}
+
+
+def parse_geo(content: bytes) -> list[dict]:
+    """Valida `job_geo` (opcional). Si existe y no es una lista se rechaza el respaldo."""
+    rows = json.loads(content).get("job_geo")
+    if rows is None:
+        return []
+    if not isinstance(rows, list) or len(rows) > MAX_HISTORY:
+        raise ValueError("Metadatos geográficos inválidos")
+    valid = []
+    for r in rows:
+        if not isinstance(r, dict) or not isinstance(r.get("job_id"), str) or not _JOB_ID.match(r["job_id"]):
+            continue
+        countries = r.get("countries") or []
+        if r.get("modality", "") not in _MODALITIES or not isinstance(countries, list) or len(countries) > 50                 or not all(isinstance(c, str) and len(c) < 80 for c in countries):
+            continue
+        valid.append({"job_id": r["job_id"], "modality": r.get("modality", ""), "countries": countries,
+                      "evidence": str(r.get("evidence", ""))[:200]})
+    return valid
+
+
+def _import_geo(db, rows: list[dict]) -> int:
+    known = {r[0] for r in db.execute("SELECT id FROM jobs")}
+    rows = [r for r in rows if r["job_id"] in known]
+    db.executemany("""INSERT INTO job_geo(job_id, modality, countries, evidence, updated_at) VALUES (?,?,?,?,?)
+                      ON CONFLICT(job_id) DO UPDATE SET modality=excluded.modality, countries=excluded.countries,
+                      evidence=excluded.evidence, updated_at=excluded.updated_at""",
+                   [(r["job_id"], r["modality"], json.dumps(r["countries"], ensure_ascii=False), r["evidence"], now())
+                    for r in rows])
+    db.commit()
+    return len(rows)
+
+
 def restore(db, settings: AppSettings, content: bytes) -> dict:
     """Valida todo antes de escribir. Devuelve un resumen."""
     try:
@@ -96,9 +132,11 @@ def restore(db, settings: AppSettings, content: bytes) -> dict:
     if backup_profile is not None:
         Profile.model_validate(backup_profile)  # lanza ValidationError (subclase de ValueError)
     history, invalid = parse_history(content)
+    geo_rows = parse_geo(content)
     safety = dbmod.snapshot(settings.db_path, settings.backups_dir, "pre-import")
     count = import_backup(db, content)
     history_added, orphans = _import_history(db, history)
+    _import_geo(db, geo_rows)
     if backup_profile is not None:
         save_profile(backup_profile, settings.profile_path)
     return {"imported": count, "profile_restored": backup_profile is not None,

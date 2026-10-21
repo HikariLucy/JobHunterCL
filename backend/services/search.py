@@ -20,6 +20,8 @@ from typing import Callable
 import requests
 
 from jobhunter.collect import PartialFetch, build_sources
+
+from . import geo
 from jobhunter.storage import get_setting, job_id, set_setting, upsert_jobs
 
 LAST_SCAN = "last_scan"
@@ -120,9 +122,16 @@ def run_search(db: sqlite3.Connection, profile: dict, trigger: str = "manual", *
                 if not isinstance(exc, (requests.ConnectionError, requests.Timeout)):
                     contacted = True
         # La misma oferta puede llegar por varias fuentes (feed y API de Get on Board):
-        # se guarda una vez y gana la última fuente, la más completa.
-        jobs = list({job_id(j["url"]): j for j in jobs if str(j.get("url", "")).startswith("https://")}.values())
+        # se guarda una vez, gana la última fuente (la más completa) y se conserva la
+        # evidencia geográfica explícita de la anterior.
+        unique: dict[str, dict] = {}
+        for j in jobs:
+            if str(j.get("url", "")).startswith("https://"):
+                key = job_id(j["url"])
+                unique[key] = geo.merge_evidence(unique[key], j) if key in unique else j
+        jobs = list(unique.values())
         added = upsert_jobs(db, jobs) if jobs else 0
+        geo.save(db, jobs)
         if contacted:
             # Toda consulta que llegó a la fuente cuenta para su límite, aunque no trajera ofertas.
             set_setting(db, LAST_SCAN, clock().isoformat())

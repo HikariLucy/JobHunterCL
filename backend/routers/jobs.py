@@ -18,13 +18,14 @@ router = APIRouter(tags=["ofertas"])
 def list_jobs(status: list[str] = Query(default=[]), min_score: int = Query(0, ge=0, le=100),
               q: str = Query("", max_length=200), source: str = Query("", max_length=200),
               sort: str = Query("score", pattern="^(score|recent)$"),
+              eligibility: str = Query("", pattern="^(|compatible|desconocida|incompatible)$"),
               limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0),
               db=Depends(get_db), profile=Depends(get_profile)):
     bad = [s for s in status if s not in STATUSES]
     if bad:
         raise HTTPException(422, f"Estado desconocido: {bad[0]}")
     return svc.query(db, profile, statuses=status, min_score=min_score, q=q, source=source,
-                     sort=sort, limit=limit, offset=offset)
+                     sort=sort, limit=limit, offset=offset, eligibility=eligibility)
 
 
 @router.get("/jobs/sources", response_model=list[str])

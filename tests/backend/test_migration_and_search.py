@@ -27,7 +27,7 @@ def test_migration_is_additive_and_backs_up_first(tmp_path):
     path, backups = tmp_path / "jobs.sqlite3", tmp_path / "backups"
     legacy_db(path)
     result = dbmod.migrate(path, backups)
-    assert (result["from"], result["to"]) == (0, 1)
+    assert (result["from"], result["to"]) == (0, 2)
     copy = sqlite3.connect(result["backup"])
     assert copy.execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 2
     assert copy.execute("PRAGMA user_version").fetchone()[0] == 0
@@ -35,10 +35,30 @@ def test_migration_is_additive_and_backs_up_first(tmp_path):
     db = connection(path)  # el MVP sigue funcionando sobre la base migrada
     assert sorted(j["status"] for j in list_jobs(db)) == ["Nueva", "Postulada"]
     tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-    assert {"jobs", "settings", "status_history", "scan_runs"} <= tables
+    assert {"jobs", "settings", "status_history", "scan_runs", "job_geo"} <= tables
     db.close()
     assert dbmod.migrate(path, backups)["backup"] is None  # idempotente, sin copias extra
     assert len(list(backups.iterdir())) == 1
+
+
+def test_v1_database_upgrades_to_v2_with_backup(tmp_path):
+    """Bases creadas por la versión anterior (esquema 1) ganan job_geo sin perder datos."""
+    path, backups = tmp_path / "jobs.sqlite3", tmp_path / "backups"
+    legacy_db(path)
+    db = sqlite3.connect(path)
+    for sql in dbmod.MIGRATIONS[1]:
+        db.execute(sql)
+    db.execute("INSERT INTO status_history(job_id,old_status,new_status,changed_at) VALUES ('x','Nueva','Revisar','t')")
+    db.execute("PRAGMA user_version=1")
+    db.commit()
+    db.close()
+    result = dbmod.migrate(path, backups)
+    assert (result["from"], result["to"]) == (1, 2) and "pre-v2" in result["backup"]
+    db = connection(path)
+    assert db.execute("SELECT COUNT(*) FROM status_history").fetchone()[0] == 1
+    assert db.execute("SELECT COUNT(*) FROM job_geo").fetchone()[0] == 0
+    assert len(list_jobs(db)) == 2
+    db.close()
 
 
 def test_fresh_database_needs_no_backup(tmp_path):

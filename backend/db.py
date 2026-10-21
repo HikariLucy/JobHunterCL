@@ -14,7 +14,7 @@ from pathlib import Path
 
 from jobhunter import storage
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 MIGRATIONS: dict[int, list[str]] = {
     1: [
@@ -35,6 +35,15 @@ MIGRATIONS: dict[int, list[str]] = {
             fetched INTEGER NOT NULL DEFAULT 0,
             added INTEGER NOT NULL DEFAULT 0,
             errors TEXT NOT NULL DEFAULT '[]')""",
+    ],
+    # v2: metadatos geográficos estructurados de la fuente (elegibilidad), por oferta.
+    2: [
+        """CREATE TABLE IF NOT EXISTS job_geo (
+            job_id TEXT PRIMARY KEY,
+            modality TEXT NOT NULL DEFAULT '',
+            countries TEXT NOT NULL DEFAULT '[]',
+            evidence TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL)""",
     ],
 }
 
