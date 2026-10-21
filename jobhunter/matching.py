@@ -2,8 +2,10 @@
 from __future__ import annotations
 import re
 import unicodedata
+from functools import lru_cache
 
 
+@lru_cache(maxsize=512)  # contains() vuelve a normalizar el mismo texto por cada término
 def norm(s: str) -> str:
     return " ".join(unicodedata.normalize("NFKD", str(s).lower()).encode("ascii", "ignore").decode().split())
 
