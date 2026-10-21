@@ -67,12 +67,12 @@ Copia `.env.example` a `.env`:
 
 - `data/` contiene la base SQLite, el perfil y las copias automáticas (`data/backups/`). **Nunca se sube a GitHub**; tampoco `.env`, CV (`*.tex`, `*.pdf`, `*.docx`), cookies ni sesiones.
 - Antes de migrar el esquema o importar un respaldo se guarda una copia de la base.
-- Para pasar el seguimiento a otro PC: **Configuración → Descargar respaldo** e **Importar** en el otro equipo. El JSON contiene datos privados; transfiérelo por un canal personal seguro. Es compatible con el respaldo del MVP Streamlit.
+- Para pasar el seguimiento a otro PC: **Configuración → Descargar respaldo** e **Importar** en el otro equipo. El JSON contiene datos privados; transfiérelo por un canal personal seguro. Incluye el historial de estados, que se restaura sin duplicarse si importas el mismo archivo dos veces. Es compatible con el respaldo del MVP Streamlit en ambos sentidos (los respaldos sin historial se importan igual).
 
 ## Fuentes y límites
 
-- **Get on Board:** feed público RSS. **Remotive:** API pública (máx. 4 consultas/día → espera de 6 h 30 min). **Greenhouse / Lever:** APIs públicas de empresas concretas (identificador público, nunca credenciales).
-- Espera mínima entre búsquedas: 30 min. Reintentos solo ante fallos de red/servidor; un HTTP 429 no se reintenta.
+- **Get on Board:** feed público XML. **Remotive:** API pública (máx. 4 consultas/día → espera de 6 h 30 min). **Greenhouse / Lever:** APIs públicas de empresas concretas (identificador público, nunca credenciales).
+- Espera mínima entre búsquedas: 30 min. Mientras dura, el botón «Buscar» queda deshabilitado e indica cuándo estará disponible. Reintentos solo ante fallos de red/servidor; un HTTP 429 no se reintenta.
 - No se salta CAPTCHA, no se accede a contenido con inicio de sesión ni se envían postulaciones.
 
 ## Desarrollo

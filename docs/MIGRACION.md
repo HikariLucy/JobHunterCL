@@ -35,7 +35,7 @@ Rama: `feat/local-first-fastapi-react` (desde `main` c50dd8b). Fecha: 2026-10-21
 | Cambiar estado y guardar nota | ✅ | + historial |
 | Métricas por estado | ✅ Dashboard/Seguimiento | |
 | Tabla de seguimiento | ✅ Seguimiento | Tarjetas filtrables por estado |
-| Exportar / importar respaldo JSON | ✅ Configuración | Formato v1 compatible en ambos sentidos; copia previa al importar |
+| Exportar / importar respaldo JSON | ✅ Configuración | Formato v1 compatible en ambos sentidos; copia previa al importar; + historial de estados |
 | Editar cargos, habilidades, ubicaciones | ✅ Mi perfil | + experiencia, idiomas, preferencias |
 | Fuentes (Get on Board, Remotive, Greenhouse, Lever) | ✅ Configuración | Valida identificadores |
 | — | ✅ Búsqueda programada | Nuevo |
@@ -87,19 +87,46 @@ Todas las pruebas se hicieron con carpetas de datos **temporales** (`JOBHUNTER_D
 5. CI sin disparadores para ramas de trabajo; requisito de Node mal documentado (20+ → 22.12+).
 6. BAT: aviso sobre la pregunta «¿Desea terminar el trabajo por lotes?» de cmd.
 
+## Validación — ronda 3 (2026-10-21, cierre de pendientes antes de M1)
+
+Datos: carpetas temporales fuera del repositorio. `data/jobs.sqlite3` solo se abrió en modo lectura (esquema 0, 0 ofertas, última escritura anterior a la ronda); no existe `data/profile.json`. Perfil y CV personales sin tocar.
+
+| Prueba | Método | Resultado |
+|---|---|---|
+| Respaldo de la rama | `git fetch` + comparación de SHA; `gh api` | Local = `origin`, repositorio privado. |
+| CI en GitHub | Push de la rama; `gh run watch` | ✅ pytest (Ubuntu, Python 3.12) y frontend (Node 22: Vitest + build). Advertencias de Node 20 en las actions eliminadas (v7). |
+| Historial en respaldos | 5 pruebas nuevas + E2E real entre dos servidores | Restaura 4 cambios con fechas idénticas; reimportar añade 0; respaldos sin historial se importan; historial no-lista → 422 sin copia ni escritura; inválidos y huérfanos se omiten y se cuentan. |
+| Instalación desde cero (BAT) | Clon limpio + `.\INICIAR-JOBHUNTER.bat --no-browser`, cachés pip/npm vaciadas | ✅ **2 min 18 s** hasta responder: venv, pip, `npm ci`, compilación, servidor. Solo en 127.0.0.1, Host ajeno → 400, SPA y rutas profundas 200. 59 pruebas pasan dentro del clon. Entorno de 53 MB (antes 364 MB, ver separación de dependencias). |
+| MVP tras separar dependencias | `.\INICIAR-WINDOWS.bat` en el mismo clon | Resuelve `requirements-streamlit.txt` → `requirements.txt` e inicia la instalación de Streamlit; **falló por disco lleno** (`Errno 28`). El BAT mostró el error y la ayuda. Arranque del MVP en limpio **no verificado**. |
+| Puntuaciones | 326 ofertas reales, perfil por defecto | Ver [ANALISIS_PUNTAJES.md](ANALISIS_PUNTAJES.md): 11 sobre el umbral, precisión ≈ 36 %, recall de TI inicial ≈ 57 %, 7 defectos documentados como `xfail` estrictos. |
+| UX de búsqueda | Vitest + Chrome real (escritorio y 390×844 emulado por DevTools) | Botón deshabilitado durante la espera con el tiempo restante (sin 429 ni error en consola); 5 secciones sin desborde a 390 px. `Retry-After` real (1785 s observado). |
+| Rendimiento | Medición con las 326 ofertas | `/api/jobs` 1,3 s y `/api/dashboard` 2,5 s. Puntuar: 1,32 s → 0,78 s con caché de `norm()`, resultados idénticos. |
+
+### Cambios de esta ronda
+
+1. `backup`: importación de `status_history` (compatible con respaldos anteriores).
+2. `ci`: actions con Node 24.
+3. `frontend`: el botón de búsqueda anticipa la espera mínima; mensaje de error claro si fallan todas las fuentes, diciendo si se puede reintentar ya.
+4. `api`: `Retry-After` con la espera real.
+5. `matching`: caché de `norm()` (rendimiento, sin cambio de resultados) y casos de prueba del análisis.
+6. `build`: Streamlit en `requirements-streamlit.txt`; el panel nuevo ya no lo instala.
+
+### Incidencias de la ronda
+
+- El disco C: llegó a **0 bytes libres** durante la sesión por consumo ajeno al proyecto. Con autorización del usuario se vaciaron las cachés de npm y pip.
+- Al verificar el 429 en real, un fallo de mi script hizo que un `POST /api/search` consultara Get on Board (base temporal). Junto con la descarga del análisis, fueron 2 consultas al feed público en ~20 min.
+
 ## No verificado
 
-- Instalación desde cero mediante el BAT (bloqueada por falta de espacio en disco).
-- Doble clic manual en el BAT y apertura real del navegador predeterminado (se ejecutó con `cmd /c` y `--no-browser`).
-- Aviso de «servidor detenido» del panel (cubierto solo por el código; no por prueba E2E).
-- Ubuntu y GitHub Actions.
+- Arranque del MVP Streamlit en un clon limpio tras separar las dependencias (disco lleno). El MVP del repositorio principal no cambió de código.
+- Doble clic manual en el BAT y apertura real del navegador predeterminado.
+- Aviso de «servidor detenido» del panel (solo cubierto por el código).
+- Lanzador en Ubuntu: CI ejecuta las pruebas en Ubuntu, pero no `iniciar-jobhunter.sh` ni el panel.
 - Remotive, Greenhouse y Lever con red real.
 
 ## Pendientes
 
-1. Liberar espacio en C: y repetir la instalación desde cero con el BAT.
-2. El usuario valida la paridad con datos reales → decidir retiro de Streamlit (`app.py`, `launch.py`, `INICIAR-WINDOWS.bat`). El MVP Streamlit mantiene su política anterior de espera (solo con resultados).
-3. Push de la rama y primera ejecución de CI.
-4. Smoke test en Ubuntu.
-5. Importar historial de estados desde respaldos (hoy solo se exporta).
-6. M1 según ROADMAP.
+1. El usuario valida la paridad con datos reales → decidir el retiro de Streamlit (`app.py`, `launch.py`, `INICIAR-WINDOWS.bat`, `iniciar-linux.sh`, `requirements-streamlit.txt`).
+2. Smoke test de `iniciar-jobhunter.sh` en Ubuntu real.
+3. Liberar espacio en C: de forma duradera y verificar el MVP en limpio si se mantendrá.
+4. M1 según ROADMAP, empezando por los defectos de [ANALISIS_PUNTAJES.md](ANALISIS_PUNTAJES.md).

@@ -22,14 +22,15 @@
 - [x] Contratos de integración de CV (sin implementación).
 - [ ] Validación de paridad por el usuario con datos reales → retirar Streamlit.
 - [x] Búsqueda real con red desde el panel nuevo (Get on Board, Windows 10, 2026-10-21).
-- [ ] Instalación desde cero con el BAT (bloqueada por disco lleno en la validación).
-- [ ] Smoke test en Ubuntu y primera ejecución de CI en GitHub.
-- [ ] Importar historial de estados desde respaldos.
+- [x] Instalación desde cero con el BAT (Windows 10, 2026-10-21: 2 min 18 s, entorno de 53 MB).
+- [x] CI en GitHub (pytest en Ubuntu + Vitest + build).
+- [ ] Smoke test del lanzador en Ubuntu real.
+- [x] Importar historial de estados desde respaldos.
 
 ## M1 · Búsqueda adaptada a Chile
 - [ ] Perfil fiel verificado: experiencia, ubicación, modalidad, remuneración, inglés, seniority. *(campos disponibles en el panel; falta usarlos en el matching)*
 - [ ] Obtener descripción completa por APIs públicas antes de puntuar.
-- [ ] Mejorar ranking: habilidades obligatorias vs deseables, incompatibilidades duras y explicaciones.
+- [ ] Mejorar ranking: habilidades obligatorias vs deseables, incompatibilidades duras y explicaciones. *(línea base y 7 defectos medidos: docs/ANALISIS_PUNTAJES.md)*
 - [ ] Conectores adicionales (solo endpoints permitidos), intervalos, backoff y robots/ToS por plataforma.
 - [ ] Pruebas con fixtures reales anonimizados y análisis de duplicados entre fuentes.
 

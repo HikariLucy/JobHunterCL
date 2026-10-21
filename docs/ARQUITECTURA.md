@@ -36,7 +36,7 @@
 | `services/jobs.py` | Puntuar (reutiliza `matching.evaluate`), filtrar, actualizar estado/nota e historial. |
 | `services/search.py` | Búsqueda con candado, espera mínima por fuente, reintentos con backoff y registro en `scan_runs`. |
 | `services/scheduler.py` | Bucle asyncio cada 60 s; ejecuta si vence el intervalo configurado (nunca menor que el mínimo de las fuentes). |
-| `services/backup.py` | Exportar/importar `jobhuntercl-backup-v1` (+ `status_history`), copia de seguridad antes de importar. |
+| `services/backup.py` | Exportar/importar `jobhuntercl-backup-v1` (+ `status_history`, validado antes de escribir, sin duplicados ni entradas huérfanas), copia de seguridad antes de importar. |
 | `cv_contracts.py` | Contratos de la futura integración de CV (sin implementación). |
 
 ### Endpoints
@@ -51,7 +51,7 @@
 | GET | `/api/jobs/{id}/history` | Historial de estados |
 | GET | `/api/tracking` | Postulaciones en curso + cambios recientes |
 | GET | `/api/search/status` | Última búsqueda, próxima permitida/programada, ejecuciones |
-| POST | `/api/search` | Búsqueda manual (409 si hay otra en curso, 429 si está en espera) |
+| POST | `/api/search` | Búsqueda manual (409 si hay otra en curso; 429 con `Retry-After` en segundos si está en espera — el panel la anticipa con `/api/search/status`) |
 | GET/PUT | `/api/profile` | Perfil |
 | GET/PUT | `/api/config` | Fuentes + intervalo de búsqueda |
 | GET | `/api/backup/export` | Descarga JSON |
