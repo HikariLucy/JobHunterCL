@@ -147,3 +147,19 @@ def test_scheduler_tick_runs_only_when_due(settings):
     run = scheduler.tick(settings, now, source_factory=factory)
     assert run["trigger"] == "scheduled" and run["added"] == 1
     assert scheduler.tick(settings, now + timedelta(minutes=5), source_factory=factory) is None
+
+
+def test_empty_or_rejected_responses_start_cooldown(db):
+    """Una respuesta sin ofertas o un 429 también consumen el cupo de la fuente."""
+    run = search.run_search(db, PROFILE, clock=lambda: T0, source_factory=lambda s: [("Vacía", lambda: [])])
+    assert run["status"] == "empty"
+    assert search.next_allowed(db, PROFILE["sources"]) == T0 + timedelta(minutes=30)
+    with pytest.raises(search.CooldownActive):
+        search.run_search(db, PROFILE, clock=lambda: T0 + timedelta(minutes=1), source_factory=lambda s: [])
+
+    def limited():
+        raise http_error(429)
+    later = T0 + timedelta(hours=1)
+    run = search.run_search(db, PROFILE, clock=lambda: later, source_factory=lambda s: [("L", limited)])
+    assert run["status"] == "error"
+    assert search.next_allowed(db, PROFILE["sources"]) == later + timedelta(minutes=30)

@@ -5,6 +5,9 @@
 - Solo reintenta errores transitorios (red, timeout, HTTP 5xx). Un HTTP 429
   se registra y no se reintenta: se respeta el límite de la fuente.
 - Un candado evita búsquedas simultáneas (manual + programada).
+- La espera mínima empieza con cualquier respuesta de una fuente (también 0
+  resultados, 429 o 5xx); solo los fallos de red sin respuesta permiten
+  reintentar de inmediato.
 """
 from __future__ import annotations
 import json
@@ -99,13 +102,18 @@ def run_search(db: sqlite3.Connection, profile: dict, trigger: str = "manual", *
         run_id = cur.lastrowid
         db.commit()
         jobs, errors = [], []
+        contacted = False  # alguna fuente recibió y respondió la petición
         for name, fn in source_factory(sources):
             try:
                 jobs.extend(fetch_with_retries(fn, sleep=sleep))
+                contacted = True
             except (requests.RequestException, ValueError, KeyError, TypeError, AttributeError) as exc:
                 errors.append(f"{name}: {str(exc)[:180]}")
+                if not isinstance(exc, (requests.ConnectionError, requests.Timeout)):
+                    contacted = True
         added = upsert_jobs(db, jobs) if jobs else 0
-        if jobs:
+        if contacted:
+            # Toda consulta que llegó a la fuente cuenta para su límite, aunque no trajera ofertas.
             set_setting(db, LAST_SCAN, clock().isoformat())
         if jobs:
             status_ = "partial" if errors else "ok"

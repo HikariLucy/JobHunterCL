@@ -71,7 +71,7 @@ Política de migraciones: nunca `DROP`/`RENAME`/`ALTER ... DROP`; cada versión 
 
 - Espera mínima: 30 min; 6 h 30 min si Remotive está activo (su API pide ≤ 4 consultas/día).
 - Reintentos: solo errores de red/timeout/HTTP 5xx (2 s, 6 s). HTTP 429 no se reintenta.
-- Un fallo total no inicia la espera; queda registrado en `scan_runs`.
+- Cualquier respuesta de una fuente (también 0 resultados, 429 o 5xx) inicia la espera. Solo un fallo de red sin respuesta permite reintentar de inmediato. Todo queda en `scan_runs`.
 - Ejecuciones que quedaron `running` por un cierre abrupto se marcan `interrupted` al arrancar.
 
 ## Frontend (`frontend/`)
