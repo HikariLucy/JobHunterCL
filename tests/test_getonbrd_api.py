@@ -120,6 +120,20 @@ def test_paginates_filters_remote_and_deduplicates():
     assert stats["requests"] == 3 and len(sleeps) == 2  # pausa entre peticiones, no antes de la primera
 
 
+def test_remote_search_accepts_feed_category_names_and_reports_unknown():
+    """Con lang=es la búsqueda devuelve «Machine Learning / AI» (no «Machine Learning & AI»)."""
+    routes = {("/search/jobs", 1): page([
+        item("m-1", remote="fully_remote", category="Machine Learning / AI"),
+        item("v-1", remote="fully_remote", category="Comercial y Ventas"),
+        item("n-1", remote="fully_remote", category="Categoría Nueva"),
+    ])}
+    stats = {}
+    jobs, _, _ = run(routes, categories=("machine-learning-ai",), stats=stats)
+    assert [j["url"] for j in jobs] == ["https://www.getonbrd.com/jobs/machine-learning-ai/m-1"]
+    assert stats["remote_non_tech"] == {"Comercial y Ventas": 1}
+    assert stats["unknown_categories"] == {"Categoría Nueva": 1}
+
+
 def test_page_limit_bounds_requests():
     routes = {("/categories/programacion/jobs", n): page([item(f"j-{n}")], total=50) for n in range(1, 51)}
     stats = {}

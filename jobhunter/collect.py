@@ -9,6 +9,8 @@ import requests
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 
+from .matching import SOURCE_CATEGORIES, norm
+
 UA = "JobHunterCL/0.1 (buscador personal, acceso puntual a feeds publicos)"
 SESSION = requests.Session()
 SESSION.headers.update({"User-Agent": UA, "Accept": "application/json, application/xml, text/xml, */*"})
@@ -220,9 +222,13 @@ def getonbrd_api(session=None, sleep=time.sleep, country_code: str = "cl", count
         for data in pages("/search/jobs", {"remote": "true"}):
             for item in data:
                 attrs = item.get("attributes") or {}
-                slug = by_name.get(_category_es(attrs.get("category_name", "")))
+                name = attrs.get("category_name", "")
+                slug = by_name.get(_category_es(name))
                 if slug is None:
-                    stats["unmapped_categories"] = stats.get("unmapped_categories", 0) + 1
+                    # Categoría no técnica conocida o desconocida (esta última conviene revisarla).
+                    key = "remote_non_tech" if norm(name) in SOURCE_CATEGORIES else "unknown_categories"
+                    stats.setdefault(key, {}).setdefault(name, 0)
+                    stats[key][name] += 1
                 if slug in categories and attrs.get("remote_modality") == "fully_remote":
                     add(item, slug)
     except (requests.RequestException, ValueError) as exc:
@@ -244,7 +250,9 @@ _GOB_API_CATEGORY_NAMES = {
 
 
 def _category_es(name: str) -> str:
-    return _GOB_API_CATEGORY_NAMES.get(str(name).strip().lower(), "")
+    key = str(name).strip().lower()
+    feed_names = {v.lower(): v for v in GOB_TECH_CATEGORIES.values()}  # con lang=es la API usa estos
+    return feed_names.get(key) or _GOB_API_CATEGORY_NAMES.get(key, "")
 
 
 def build_sources(sources: dict) -> list[tuple[str, Callable[[], list[dict]]]]:
