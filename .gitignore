@@ -1,0 +1,16 @@
+# Datos personales, seguimiento, secretos y entornos locales.
+data/
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.streamlit/secrets.toml
+*.sqlite3
+*.db
+*.pdf
+*.docx
+*.json.bak
+.DS_Store
