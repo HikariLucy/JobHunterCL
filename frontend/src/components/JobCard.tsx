@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../api/client";
 import { STATUSES, type HistoryEntry, type Job, type Status } from "../api/types";
 import { formatDate, relativeTime } from "../utils/format";
-import { ErrorBox, ScoreBadge, StatusBadge } from "./ui";
+import { EligibilityBadge, ErrorBox, ScoreBadge, StatusBadge } from "./ui";
 
 /** Tarjeta expandible de oferta: explicación del puntaje, estado, notas e historial. */
 export function JobCard({ job, onChange, defaultOpen = false }: {
@@ -55,6 +55,7 @@ export function JobCard({ job, onChange, defaultOpen = false }: {
           <span className="muted">
             {job.company} · {job.location || "Ubicación no indicada"} · {job.source}
           </span>
+          {job.eligibility && <EligibilityBadge eligibility={job.eligibility} />}
         </div>
         <StatusBadge status={job.status} />
       </button>

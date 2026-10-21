@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import { STATUSES, type Job, type JobPage, type Status } from "../api/types";
+import { STATUSES, type EligibilityStatus, type Job, type JobPage, type Status } from "../api/types";
 import { JobCard } from "../components/JobCard";
 import { SearchButton } from "../components/SearchButton";
 import { AsyncView, Empty, PageHeader } from "../components/ui";
@@ -22,6 +22,7 @@ export function Explore() {
   const [minScore, setMinScore] = useState(30);
   const [text, setText] = useState("");
   const [source, setSource] = useState("");
+  const [eligibility, setEligibility] = useState<EligibilityStatus | "">("");
   const [sort, setSort] = useState<"score" | "recent">("score");
   const [limit, setLimit] = useState(PAGE);
   const q = useDebounced(text);
@@ -29,8 +30,8 @@ export function Explore() {
 
   const sources = useAsync(api.jobSources);
   const page = useAsync(
-    () => api.jobs({ status: statuses, min_score: score, q, source, sort, limit }),
-    [statuses.join(","), score, q, source, sort, limit],
+    () => api.jobs({ status: statuses, min_score: score, q, source, sort, limit, eligibility }),
+    [statuses.join(","), score, q, source, sort, limit, eligibility],
   );
 
   const toggleStatus = (s: Status) =>
@@ -60,6 +61,15 @@ export function Explore() {
           <select id="source" value={source} onChange={(e) => setSource(e.target.value)}>
             <option value="">Todas</option>
             {(sources.data ?? []).map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="eligibility">Elegibilidad</label>
+          <select id="eligibility" value={eligibility} onChange={(e) => setEligibility(e.target.value as EligibilityStatus | "")}>
+            <option value="">Todas</option>
+            <option value="compatible">Confirmada</option>
+            <option value="desconocida">Por confirmar (revisar a mano)</option>
+            <option value="incompatible">Fuera de tus zonas</option>
           </select>
         </div>
         <div className="field">

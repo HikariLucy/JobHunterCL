@@ -18,6 +18,7 @@ export function makeJob(overrides: Partial<Job> = {}): Job {
     score: 72,
     reasons: ["Cargo objetivo: desarrollador junior"],
     warnings: ["Revisar nivel de inglés exigido"],
+    eligibility: { status: "compatible", evidence: "ubicación: Santiago, Chile", basis: "texto" },
     ...overrides,
   };
 }

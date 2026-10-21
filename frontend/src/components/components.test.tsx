@@ -35,6 +35,24 @@ describe("ListEditor", () => {
 });
 
 describe("JobCard", () => {
+  it("muestra la elegibilidad geográfica con su evidencia", () => {
+    const cases = [
+      [{ status: "compatible", evidence: "países informados: Chile", basis: "metadatos" }, "Elegible"],
+      [{ status: "desconocida", evidence: "remoto restringido a países que la fuente no informa", basis: "metadatos" },
+       "Elegibilidad por confirmar"],
+      [{ status: "incompatible", evidence: "ubicación: Argentina", basis: "texto" }, "Fuera de tus zonas"],
+    ] as const;
+    for (const [eligibility, label] of cases) {
+      const { unmount } = render(<JobCard job={makeJob({ eligibility: { ...eligibility } })} onChange={() => {}} />);
+      const badge = screen.getByText(label);
+      expect(badge).toHaveAttribute("title", eligibility.evidence);
+      expect(badge).toHaveAccessibleName(`${label}: ${eligibility.evidence}`);
+      expect(badge).toHaveClass(`elig-${eligibility.status}`);
+      unmount();
+    }
+  });
+
+
   it("explica el puntaje, enlaza al original y cambia el estado", async () => {
     const user = userEvent.setup();
     const job = makeJob();

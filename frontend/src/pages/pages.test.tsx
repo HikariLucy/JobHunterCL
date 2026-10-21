@@ -45,6 +45,23 @@ describe("navegación y páginas", () => {
     });
   });
 
+  it("Explorar filtra por elegibilidad y mantiene visibles las ofertas por confirmar", async () => {
+    const user = userEvent.setup();
+    const pending = makeJob({ id: "p1", title: "Backend Remoto",
+      eligibility: { status: "desconocida", evidence: "remoto restringido a países que la fuente no informa", basis: "metadatos" } });
+    const fetch = mockFetch({
+      ...base,
+      "GET /api/jobs": () => ({ items: [pending], total: 1, stored: 1 }),
+    });
+    renderAt("/ofertas");
+    expect(await screen.findByText("Elegibilidad por confirmar")).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Elegibilidad"), "desconocida");
+    await waitFor(() => {
+      const last = fetch.mock.calls.filter(([u]) => String(u).includes("/api/jobs?")).at(-1);
+      expect(String(last?.[0])).toContain("eligibility=desconocida");
+    });
+  });
+
   it("muestra error con opción de reintentar si la API falla", async () => {
     const user = userEvent.setup();
     let fail = true;

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Status } from "../api/types";
+import type { Eligibility, EligibilityStatus, Status } from "../api/types";
 import { scoreLevel } from "../utils/format";
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
@@ -44,6 +44,22 @@ export function StatCard({ label, value, hint, tone = "default" }: {
 
 export function StatusBadge({ status }: { status: Status | string }) {
   return <span className={`badge status-${String(status).toLowerCase()}`}>{status}</span>;
+}
+
+const ELIGIBILITY_LABEL: Record<EligibilityStatus, string> = {
+  compatible: "Elegible",
+  desconocida: "Elegibilidad por confirmar",
+  incompatible: "Fuera de tus zonas",
+};
+
+/** Elegibilidad geográfica; la evidencia queda en el título y para lectores de pantalla. */
+export function EligibilityBadge({ eligibility }: { eligibility: Eligibility }) {
+  return (
+    <span className={`badge elig-${eligibility.status}`} title={eligibility.evidence}
+          aria-label={`${ELIGIBILITY_LABEL[eligibility.status]}: ${eligibility.evidence}`}>
+      {ELIGIBILITY_LABEL[eligibility.status]}
+    </span>
+  );
 }
 
 export function ScoreBadge({ score }: { score: number }) {

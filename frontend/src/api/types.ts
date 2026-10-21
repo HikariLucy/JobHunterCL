@@ -3,6 +3,15 @@
 export const STATUSES = ["Nueva", "Revisar", "Preparada", "Postulada", "Descartada"] as const;
 export type Status = (typeof STATUSES)[number];
 
+export type EligibilityStatus = "compatible" | "desconocida" | "incompatible";
+
+/** Elegibilidad geográfica para las zonas del perfil, con la evidencia usada. */
+export interface Eligibility {
+  status: EligibilityStatus;
+  evidence: string;
+  basis: string;
+}
+
 export interface Job {
   id: string;
   source: string;
@@ -19,6 +28,7 @@ export interface Job {
   score: number;
   reasons: string[];
   warnings: string[];
+  eligibility: Eligibility;
 }
 
 export interface JobPage {
@@ -33,6 +43,7 @@ export interface JobQuery {
   q?: string;
   source?: string;
   sort?: "score" | "recent";
+  eligibility?: EligibilityStatus | "";
   limit?: number;
   offset?: number;
 }

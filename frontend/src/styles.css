@@ -164,6 +164,10 @@ fieldset.field { border: 0; padding: 0; margin: 0; }
 .status-preparada { background: var(--violet-soft); color: var(--violet); }
 .status-postulada { background: var(--success-soft); color: var(--success); }
 .status-descartada { background: var(--surface-2); color: var(--muted); }
+.elig-compatible { background: var(--success-soft); color: var(--success); }
+.elig-desconocida { background: var(--warning-soft); color: var(--warning); }
+.elig-incompatible { background: var(--surface-2); color: var(--muted); }
+.job-main .badge { align-self: flex-start; margin-top: 0.2rem; }
 .score { display: grid; place-items: center; min-width: 2.6rem; height: 2.6rem; border-radius: 10px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .score-high { background: var(--success-soft); color: var(--success); }
 .score-mid { background: var(--warning-soft); color: var(--warning); }
