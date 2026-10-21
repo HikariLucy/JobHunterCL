@@ -1,6 +1,6 @@
 # Fuentes de empleo de nivel inicial para Chile — propuesta M1
 
-Fecha: 2026-10-21. **Nada de esto está implementado todavía.** Reglas del proyecto: solo APIs o feeds públicos y permitidos, un `User-Agent` identificable, esperas mínimas por fuente, sin scraping de sitios que lo restringen y sin postulaciones automáticas.
+Fecha: 2026-10-21. **Estado (M1.2):** la API de Get on Board está implementada y evaluada ([GETONBRD_API.md](GETONBRD_API.md)); Himalayas, solo diseñada ([HIMALAYAS.md](HIMALAYAS.md)); el resto, sin implementar. Reglas del proyecto: solo APIs o feeds públicos y permitidos, un `User-Agent` identificable, esperas mínimas por fuente, sin scraping de sitios que lo restringen y sin postulaciones automáticas.
 
 Cómo se verificó: documentación pública de cada servicio, `robots.txt` y, para Get on Board, dos peticiones mínimas a la API pública. Un `robots.txt` permisivo **no** equivale a autorización; mandan los términos de uso, que deben revisarse antes de implementar cada conector.
 

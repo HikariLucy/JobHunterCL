@@ -64,3 +64,40 @@ Así no se descargan las ofertas presenciales o restringidas a otros países, qu
 | `posted_at` | `published_at` (epoch) → `YYYY-MM-DD HH:MM:SS UTC`, como el feed. |
 
 **Activación:** `sources.getonbrd_api` en el perfil/configuración (desactivado por defecto); el feed (`sources.getonbrd`) sigue siendo independiente.
+
+## Evaluación (2026-10-21, datos temporales, perfil por defecto)
+
+Reproducible: `python scripts/compare_sources.py --fetch DIR` (1 consulta al feed + 1 pasada del conector) y luego `python scripts/compare_sources.py DIR --details`. Etiquetas:
+- **Inicial:** nivel declarado Junior o Sin experiencia.
+- **Compatible:** técnica, elegible desde las zonas del perfil, no exige más de 2 años y nivel inicial o sin declarar. Una «Junior» que pide 3+ años no cuenta.
+- **Dudosa:** Semi Senior técnica, elegible y sin exigir más de 2 años.
+
+| | Feed | API | Solo API | Solo feed | Unión |
+|---|---|---|---|---|---|
+| Ofertas | 327 | 574 | 395 | 148 | 722 |
+| Técnicas | 216 | 574 | 395 | 37 | 611 |
+| Nivel inicial | 6 | 40 | 34 | 0 | 40 |
+| Compatibles (por requisitos) | 6 | 38 | 32 | 0 | 38 |
+| Dudosas | 35 | 177 | 142 | 0 | 177 |
+| Iniciales que piden 3+ años | 0 | 2 | 2 | 0 | 2 |
+| No elegibles desde las zonas del perfil | 44 | 0 | 0 | 44 | 44 |
+| Exigen 5+ / 3–4 / 1–2 años / sin exigencia | 87 / 74 / 27 / 139 | 121 / 130 / 61 / 262 | | | 151 / 170 / 79 / 322 |
+| Sobre el umbral (30) | 5 | 38 | 33 | 0 | 38 |
+| Precisión (compatible) | 1,0 | 0,816 | 0,788 | — | 0,816 |
+| Precisión (compatible o dudosa) | 1,0 | 0,974 | 0,970 | — | 0,974 |
+| Recall (compatible) | 0,833 | 0,816 | 0,812 | — | 0,816 |
+
+- **Solapamiento:** 179 ofertas comunes. La URL es idéntica en todas, así que se guardan una sola vez.
+- **Peticiones:** feed 1 (1,8 s); API **10** (16,3 s con 1 s de pausa). Todas 200; ninguna cabecera de límite.
+- **Lo que aporta la API:** 395 ofertas técnicas que el feed no tenía, todas elegibles desde Chile. Las vacantes compatibles pasan de 6 a 38.
+- **Lo que aporta el feed con la API activa:** nada compatible en esta muestra. Sus 148 exclusivas son 111 no técnicas y 37 técnicas no elegibles desde Chile. Se mantiene (1 sola petición) por si cambia el perfil o la cobertura de la API.
+- **Las 7 coincidencias de la API que no son «compatibles»** son Semi Senior de soporte N1/N2 y mesa de ayuda («dudosas»), que coinciden con cargos del perfil.
+- **Compatibles bajo el umbral (7):** Salesforce, Azure, QA, WordPress… Puntúan 0 porque el perfil de prueba no tiene esas habilidades; es un límite del perfil, no del conector.
+- **De punta a punta, sin red** (snapshot cargado por `run_search` con feed + API): 722 filas únicas; la segunda pasada añade 0; el dashboard tarda 1,18 s la primera vez y ~0,05 s después.
+
+### Limitaciones comprobadas
+
+- La primera pasada real tenía un fallo de categorías: con `lang=es`, la búsqueda remota devuelve «Machine Learning / AI». Se perdieron 5 de 116 remotas técnicas. Está corregido (`3ef344b`) con una prueba, pero el snapshot de la tabla es anterior: le faltan esas 5. No se repitió la pasada para respetar la espera mínima de 60 min.
+- Un solo día y una sola fuente. La etiqueta usa el nivel y la categoría que publica la propia fuente.
+- `country_code=cl` excluye las totalmente remotas (se cubren con `remote=true`). Los países de `remote_local` (`location_tenants`) no tienen endpoint público: la ubicación se muestra como «Remoto (incluye Chile)».
+- La API no documenta límites de consulta: la espera mínima de 60 min es una decisión propia, no un requisito publicado.

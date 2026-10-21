@@ -71,7 +71,7 @@ Copia `.env.example` a `.env`:
 
 ## Fuentes y límites
 
-- **Get on Board:** feed público XML. **Remotive:** API pública (máx. 4 consultas/día → espera de 6 h 30 min). **Greenhouse / Lever:** APIs públicas de empresas concretas (identificador público, nunca credenciales).
+- **Get on Board:** feed público XML y, opcionalmente, su API pública (Configuración → «Get on Board — API pública»): todas las ofertas técnicas elegibles desde Chile, ~10 consultas por búsqueda y espera mínima de 60 min. Ambas se combinan sin duplicar. **Remotive:** API pública (máx. 4 consultas/día → espera de 6 h 30 min). **Greenhouse / Lever:** APIs públicas de empresas concretas (identificador público, nunca credenciales).
 - Espera mínima entre búsquedas: 30 min. Mientras dura, el botón «Buscar» queda deshabilitado e indica cuándo estará disponible. Reintentos solo ante fallos de red/servidor; un HTTP 429 no se reintenta.
 - No se salta CAPTCHA, no se accede a contenido con inicio de sesión ni se envían postulaciones.
 

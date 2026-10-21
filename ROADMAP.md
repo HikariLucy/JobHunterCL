@@ -33,7 +33,9 @@
 - [x] Corregir los 7 defectos medidos del ranking (nivel de la fuente, años, falsos amigos, ubicación): precisión 0,36 → 1,0, recall 0,57 → 0,86 en 326 ofertas. *(docs/ANALISIS_PUNTAJES.md)*
 - [ ] Mejorar ranking: habilidades obligatorias vs deseables, incompatibilidades duras y explicaciones.
 - [x] Dashboard rápido: caché de puntajes (~0,34 s → ~0,02 s).
-- [ ] Conectores adicionales (solo endpoints permitidos), intervalos, backoff y robots/ToS por plataforma. *(propuesta verificada: docs/FUENTES.md; primero API v0 de Get on Board)*
+- [x] API pública de Get on Board (opcional, desde Configuración): ofertas técnicas elegibles desde Chile; compatibles 6 → 38 por pasada (10 peticiones). *(docs/GETONBRD_API.md)*
+- [ ] Himalayas (remotos elegibles desde Chile): diseño listo en docs/HIMALAYAS.md, sin implementar.
+- [ ] Otros conectores (solo endpoints permitidos), intervalos, backoff y robots/ToS por plataforma. *(docs/FUENTES.md)*
 - [ ] Pruebas con fixtures reales anonimizados y análisis de duplicados entre fuentes.
 
 ## M2 · Preparación de postulaciones
