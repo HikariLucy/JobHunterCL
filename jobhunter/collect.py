@@ -153,14 +153,18 @@ def normalize_getonbrd_api(item: dict, category_slug: str, country: str = "Chile
     if not (_GOB_ID.fullmatch(job_id) and title and category_slug in GOB_TECH_CATEGORIES):
         return None
     company = ((attrs.get("company") or {}).get("data") or {}).get("attributes") or {}
+    # Ubicación visible + metadatos para matching.eligibility(). Solo se afirman los países
+    # que la API informa: `remote_local` no los expone (location_tenants sin endpoint público).
     modality = attrs.get("remote_modality")
+    countries = [plain(c) for c in attrs.get("countries") or [] if c and plain(c).lower() != "remote"]
     if modality == "fully_remote":
-        location = "Remoto"
+        location, countries = "Remoto", []
     elif modality == "remote_local":
-        location = f"Remoto (incluye {country})"
+        location, countries = f"Remoto (elegibilidad para {country} por confirmar)", []
     else:
-        places = ", ".join(plain(c) for c in attrs.get("countries") or [] if c) or country
+        places = ", ".join(countries) or "País no informado"
         location = f"{places} ({GOB_REMOTE[modality]})" if modality in GOB_REMOTE else places
+    geo = {"modality": modality or "", "countries": countries, "evidence": "API Get on Board"}
     lo, hi = attrs.get("min_salary"), attrs.get("max_salary")
     salary = f"{lo} - {hi} USD/mes" if lo and hi and lo != hi else (f"{lo or hi} USD/mes" if lo or hi else "")
     meta = " · ".join(f"{label}: {value}" for label, value in (
@@ -175,7 +179,7 @@ def normalize_getonbrd_api(item: dict, category_slug: str, country: str = "Chile
               if isinstance(published, (int, float)) else "")
     return {"source": "Get on Board", "title": title, "company": plain(company.get("name", "")) or "No indicada",
             "location": location, "url": f"https://www.getonbrd.com/jobs/{category_slug}/{job_id}",
-            "description": f"{meta} {body}".strip()[:10000], "posted_at": posted}
+            "description": f"{meta} {body}".strip()[:10000], "posted_at": posted, "geo": geo}
 
 
 def getonbrd_api(session=None, sleep=time.sleep, country_code: str = "cl", country: str = "Chile",

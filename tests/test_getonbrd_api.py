@@ -79,14 +79,17 @@ def test_normalization_matches_feed_format_and_id():
     assert source_meta(job["description"]) == {"level": "junior", "category": "programacion"}
 
 
-@pytest.mark.parametrize("remote, countries, expected", [
-    ("fully_remote", ("Remote",), "Remoto"),
-    ("remote_local", ("Remote",), "Remoto (incluye Chile)"),
-    ("no_remote", ("Chile",), "Chile (presencial)"),
-    ("hybrid", (), "Chile (híbrido)"),
+@pytest.mark.parametrize("remote, countries, expected, geo_countries", [
+    ("fully_remote", ("Remote",), "Remoto", []),
+    ("remote_local", ("Remote",), "Remoto (elegibilidad para Chile por confirmar)", []),
+    ("no_remote", ("Chile",), "Chile (presencial)", ["Chile"]),
+    ("hybrid", ("Chile", "Mexico"), "Chile, Mexico (híbrido)", ["Chile", "Mexico"]),
+    ("hybrid", (), "País no informado (híbrido)", []),  # nunca se supone «Chile»
 ])
-def test_location_by_remote_modality(remote, countries, expected):
-    assert normalize_getonbrd_api(item("x-1", remote=remote, countries=countries), "programacion")["location"] == expected
+def test_location_by_remote_modality(remote, countries, expected, geo_countries):
+    job = normalize_getonbrd_api(item("x-1", remote=remote, countries=countries), "programacion")
+    assert job["location"] == expected
+    assert job["geo"] == {"modality": remote, "countries": geo_countries, "evidence": "API Get on Board"}
 
 
 def test_category_names_use_feed_vocabulary():
