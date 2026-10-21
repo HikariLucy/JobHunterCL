@@ -41,16 +41,38 @@ class Sources(BaseModel):
         return [v for v in self.greenhouse_boards + self.lever_sites if not valid_token(v)]
 
 
+# Tipo de experiencia: "" = por confirmar (perfiles anteriores a M1.4). Un proyecto
+# o una práctica no equivalen a experiencia laboral formal.
+ExperienceKind = Literal["", "empleo", "practica", "proyecto", "voluntariado"]
+# Estado de un estudio: "" = por confirmar. «en_curso» nunca se presenta como título.
+EducationStatus = Literal["", "completado", "en_curso", "incompleto"]
+
+
 class ExperienceItem(BaseModel):
     role: str = Field(max_length=200)
     organization: str = Field(default="", max_length=200)
     period: str = Field(default="", max_length=100)
     summary: str = ShortText
+    kind: ExperienceKind = ""
+
+
+class EducationItem(BaseModel):
+    title: str = Field(max_length=200)
+    institution: str = Field(default="", max_length=200)
+    period: str = Field(default="", max_length=100)
+    status: EducationStatus = ""
+
+
+class SkillEvidence(BaseModel):
+    """Experiencia o proyecto que respalda una habilidad declarada (texto del usuario)."""
+    skill: str = Field(max_length=199)
+    evidence: str = Field(max_length=500)
 
 
 class LanguageItem(BaseModel):
     name: str = Field(max_length=60)
-    level: str = Field(default="", max_length=60)
+    level: str = Field(default="", max_length=60)   # declarado por el usuario (A2, B2, nativo…)
+    evidence: str = Field(default="", max_length=300)  # certificado, estudios, uso laboral; opcional
 
 
 class Preferences(BaseModel):
@@ -58,8 +80,14 @@ class Preferences(BaseModel):
     seniority: list[str] = []
     salary_min: int | None = Field(default=None, ge=0)
     salary_currency: str = Field(default="CLP", max_length=8)
+    salary_period: Literal["mensual", "anual"] = "mensual"
     relocation: bool = False
     notes: str = ShortText
+
+    @field_validator("modalities", "seniority")
+    @classmethod
+    def _lists(cls, values: list[str]) -> list[str]:
+        return _clean_list(values)[:20]
 
 
 class Profile(BaseModel):
@@ -73,11 +101,25 @@ class Profile(BaseModel):
     experience: list[ExperienceItem] = Field(default=[], max_length=50)
     languages: list[LanguageItem] = Field(default=[], max_length=20)
     preferences: Preferences = Preferences()
+    # M1.4 (opcionales; perfiles anteriores siguen siendo válidos)
+    areas: list[str] = []                 # áreas de interés (TI, datos, soporte…)
+    learning_skills: list[str] = []       # en aprendizaje: no cuentan como dominadas
+    skill_evidence: list[SkillEvidence] = Field(default=[], max_length=100)
+    education: list[EducationItem] = Field(default=[], max_length=30)
 
-    @field_validator("titles", "skills", "locations")
+    @field_validator("titles", "skills", "locations", "areas", "learning_skills")
     @classmethod
     def _lists(cls, values: list[str]) -> list[str]:
         return _clean_list(values)
+
+
+class ProfileStatus(BaseModel):
+    """Estado de data/profile.json para decidir si mostrar el asistente inicial."""
+    exists: bool
+    readable: bool
+    error: str | None
+    backup_available: bool
+    new_profile: Profile  # plantilla para el asistente cuando no hay perfil guardado
 
 
 class Eligibility(BaseModel):
