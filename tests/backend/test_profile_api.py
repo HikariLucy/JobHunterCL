@@ -129,3 +129,11 @@ def test_preferences_roundtrip_recomputes_explanations(seeded):
     seeded.put('/api/profile', json=profile)
     item = seeded.get('/api/jobs').json()['items'][0]
     assert not any('Modalidad por confirmar' in w or 'Remuneración por confirmar' in w for w in item['warnings'])
+
+
+def test_config_preserves_legacy_sources_without_adding_arbitrary_fields(client, settings):
+    save_profile({'sources': {'getonbrd':False, 'old_source':7}}, settings.profile_path)
+    result = client.put('/api/config', json={'sources': {'getonbrd':True, 'unsafe_new':'value'}})
+    assert result.status_code == 200
+    assert result.json()['sources']['old_source'] == 7
+    assert 'unsafe_new' not in result.json()['sources']

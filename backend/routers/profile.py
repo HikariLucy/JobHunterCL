@@ -89,6 +89,7 @@ def write_config(body: AppConfigUpdate, db=Depends(get_db), profile=Depends(get_
     if body.sources is not None:
         p.sources = body.sources
         _reject_invalid_tokens(p)
+        p = Profile.model_validate(_keep_known_extras(p, _stored(settings)))
         _save(p.model_dump(mode="json"), settings)
     if body.scan_interval_minutes is not None:
         search.set_scan_interval(db, body.scan_interval_minutes)
