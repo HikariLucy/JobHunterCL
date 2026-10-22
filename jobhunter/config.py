@@ -66,7 +66,28 @@ def read_profile_file(path: Path) -> dict:
         raise ProfileCorrupt(f"{path.name} no es JSON válido ({exc})") from exc
     if not isinstance(value, dict):
         raise ProfileCorrupt(f"{path.name} no contiene un objeto JSON")
+    try:
+        _validate_shape(value)
+    except ValueError as exc:
+        raise ProfileCorrupt(f"{path.name}: {exc}") from exc
     return value
+
+
+def _validate_shape(value: dict) -> None:
+    """Validación del núcleo compartido; no depende de FastAPI ni migra el archivo."""
+    for key in ("titles", "skills", "locations", "areas", "learning_skills"):
+        if key in value and (not isinstance(value[key], list)
+                             or any(not isinstance(v, str) for v in value[key])):
+            raise ValueError(f"{key} debe ser una lista de textos")
+    for key in ("experience", "education", "languages", "skill_evidence"):
+        if key in value and (not isinstance(value[key], list)
+                             or any(not isinstance(v, dict) for v in value[key])):
+            raise ValueError(f"{key} debe ser una lista de objetos")
+    for key in ("sources", "preferences"):
+        if key in value and not isinstance(value[key], dict):
+            raise ValueError(f"{key} debe ser un objeto")
+    if "min_score" in value and (type(value["min_score"]) is not int or not 0 <= value["min_score"] <= 100):
+        raise ValueError("min_score debe estar entre 0 y 100")
 
 
 def load_profile(path=PROFILE_PATH):
@@ -138,6 +159,7 @@ def save_profile(profile, path=PROFILE_PATH):
     if not isinstance(profile, dict):
         raise ProfileWriteError("El perfil debe ser un objeto JSON")
     try:
+        _validate_shape(profile)
         data = (json.dumps(profile, ensure_ascii=False, indent=2, allow_nan=False) + "\n").encode("utf-8")
     except (TypeError, ValueError) as exc:
         raise ProfileWriteError(f"Perfil no serializable: {exc}") from exc

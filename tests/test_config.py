@@ -139,3 +139,17 @@ def test_missing_profile_returns_independent_defaults(tmp_path):
     a = load_profile(tmp_path / "no.json")
     a["titles"].append("x")
     assert load_profile(tmp_path / "no.json") == DEFAULT_PROFILE
+
+
+@pytest.mark.parametrize('value', [{'titles': 'python'}, {'skills': [None]}, {'sources': []},
+                                  {'preferences': 'remote'}, {'min_score': 101}])
+def test_semantically_invalid_profile_is_corrupt(tmp_path, value):
+    path = tmp_path / 'profile.json'
+    path.write_text(json.dumps(value))
+    assert profile_status(path)['readable'] is False
+    with pytest.raises(ProfileCorrupt):
+        load_profile(path)
+    before = path.read_bytes()
+    with pytest.raises(ProfileWriteError):
+        save_profile(value, path)
+    assert path.read_bytes() == before

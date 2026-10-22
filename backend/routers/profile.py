@@ -35,10 +35,14 @@ def _keep_known_extras(body: Profile, stored: dict) -> dict:
     """Claves desconocidas: se conservan solo las que ya estaban en el archivo (perfiles
     del MVP o versiones anteriores). El panel no puede añadir campos arbitrarios."""
     data = body.model_dump(mode="json")
+    # La copia del servidor es la autoridad sobre claves heredadas. Un cliente
+    # antiguo puede omitirlas y uno nuevo no debe modificarlas arbitrariamente.
+    data.update({k: v for k, v in stored.items() if k not in Profile.model_fields})
     for key in body.model_extra or {}:
         if key not in stored:
             data.pop(key, None)
     known_sources = stored.get("sources") if isinstance(stored.get("sources"), dict) else {}
+    data["sources"].update({k: v for k, v in known_sources.items() if k not in type(body.sources).model_fields})
     for key in body.sources.model_extra or {}:
         if key not in known_sources:
             data["sources"].pop(key, None)

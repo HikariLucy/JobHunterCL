@@ -2,7 +2,7 @@
 import json
 
 from jobhunter import config
-from jobhunter.config import backup_path
+from jobhunter.config import backup_path, save_profile
 
 
 def _write(settings, value):
@@ -103,3 +103,12 @@ def test_score_cache_follows_profile_changes(seeded):
     seeded.put("/api/profile", json=profile)
     after = next(j for j in seeded.get("/api/jobs").json()["items"] if j["id"] == first["id"])
     assert after["score"] < first["score"]
+
+
+def test_omitted_legacy_fields_survive_save(client, settings):
+    save_profile({'titles': ['anterior'], 'legacy': {'keep': True},
+                  'sources': {'getonbrd': False, 'old_source': 7}}, settings.profile_path)
+    response = client.put('/api/profile', json={'titles': ['nuevo']})
+    assert response.status_code == 200
+    assert response.json()['legacy'] == {'keep': True}
+    assert response.json()['sources']['old_source'] == 7
