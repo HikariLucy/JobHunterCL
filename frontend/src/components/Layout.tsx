@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 
 const NAV = [
@@ -26,15 +26,34 @@ function useBackendOnline(): boolean | undefined {
 export function Layout() {
   const online = useBackendOnline();
   const navigate = useNavigate();
+  const location = useLocation();
+  const onboarding = useRef<{
+    location: typeof location;
+    request?: ReturnType<typeof api.profileStatus>;
+    finished: boolean;
+  }>({ location, finished: false });
   useEffect(() => {
+    const entry = onboarding.current;
+    // Cualquier navegación cierra la oportunidad inicial, incluso al volver atrás.
+    if (location !== entry.location) entry.finished = true;
+    if (entry.finished || sessionStorage.getItem('jobhunter-onboarding-dismissed')) return;
+
     let alive = true;
-    if (!sessionStorage.getItem('jobhunter-onboarding-dismissed')) {
-      api.profileStatus().then(status => {
-        if (alive && !status.exists && status.readable) navigate('/perfil', {replace: true});
-      }, () => { /* La página de perfil ofrece el error y reintento. */ });
-    }
+    // Reutiliza la consulta cuando StrictMode repite setup/cleanup al montar.
+    entry.request ??= api.profileStatus();
+    entry.request.then(status => {
+      if (!alive || entry.finished) return;
+      entry.finished = true;
+      if (!status.exists && status.readable && location.pathname !== '/perfil' &&
+          !sessionStorage.getItem('jobhunter-onboarding-dismissed')) {
+        navigate('/perfil', {replace: true});
+      }
+    }, () => {
+      if (alive) entry.finished = true;
+      /* La página de perfil ofrece el error y reintento. */
+    });
     return () => {alive = false;};
-  }, [navigate]);
+  }, [location, navigate]);
   return (
     <div className="shell">
       <aside className="sidebar">

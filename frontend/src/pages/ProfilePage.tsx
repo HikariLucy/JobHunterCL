@@ -146,8 +146,8 @@ export function ProfilePage() {
   return <>
     <PageHeader title="Mi perfil" subtitle="Se guarda solo en el directorio de datos de este equipo." />
     <AsyncView state={state} label="Cargando perfil…">{({profile, fresh}) => <>
-      {!(mode ?? fresh) && <button type="button" className="btn" onClick={() => {setMode(true); setVersion(v => v + 1);}}>Abrir asistente</button>}
-      <ProfileForm key={version} initial={persisted ?? profile} wizard={mode ?? fresh}
+      {!(mode ?? (fresh && !sessionStorage.getItem('jobhunter-onboarding-dismissed'))) && <button type="button" className="btn" onClick={() => {setMode(true); setVersion(v => v + 1);}}>Abrir asistente</button>}
+      <ProfileForm key={version} initial={persisted ?? profile} wizard={mode ?? (fresh && !sessionStorage.getItem('jobhunter-onboarding-dismissed'))}
         onCancel={() => {setMode(false); setVersion(v => v + 1); sessionStorage.setItem('jobhunter-onboarding-dismissed', '1');}}
         onSaved={saved => { setPersisted(saved); setMode(false); sessionStorage.setItem('jobhunter-onboarding-dismissed', '1'); }} />
     </>}</AsyncView>
