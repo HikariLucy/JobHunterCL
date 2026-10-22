@@ -75,19 +75,14 @@ def read_profile_file(path: Path) -> dict:
 
 def _validate_shape(value: dict) -> None:
     """Validación del núcleo compartido; no depende de FastAPI ni migra el archivo."""
-    for key in ("titles", "skills", "locations", "areas", "learning_skills"):
-        if key in value and (not isinstance(value[key], list)
-                             or any(not isinstance(v, str) for v in value[key])):
-            raise ValueError(f"{key} debe ser una lista de textos")
-    for key in ("experience", "education", "languages", "skill_evidence"):
-        if key in value and (not isinstance(value[key], list)
-                             or any(not isinstance(v, dict) for v in value[key])):
-            raise ValueError(f"{key} debe ser una lista de objetos")
-    for key in ("sources", "preferences"):
-        if key in value and not isinstance(value[key], dict):
-            raise ValueError(f"{key} debe ser un objeto")
-    if "min_score" in value and (type(value["min_score"]) is not int or not 0 <= value["min_score"] <= 100):
-        raise ValueError("min_score debe estar entre 0 y 100")
+    from pydantic import ValidationError
+    from .profile_schema import Profile
+    try:
+        Profile.model_validate(value)
+    except ValidationError as exc:
+        error = exc.errors()[0]
+        field = ".".join(str(k) for k in error["loc"])
+        raise ValueError(f"{field}: {error['msg']}") from None
 
 
 def load_profile(path=PROFILE_PATH):

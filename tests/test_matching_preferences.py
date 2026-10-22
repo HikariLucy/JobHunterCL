@@ -70,3 +70,22 @@ def test_required_desirable_and_evidence_do_not_promise_fulfilment():
     assert any('Obligatorio' in w and 'Rust' in w for w in warns)
     assert any('Deseable' in w and 'SQL' in w for w in warns)
     assert any('aprendizaje' in w for w in warns)
+
+
+@pytest.mark.parametrize('job', [
+    {**JOB, 'location':'Chile (Temporalmente remoto)', 'geo':{'modality':'temporarily_remote'}},
+    {**JOB, 'description':'Linux. Modalidad: no remoto'},
+    {**JOB, 'description':'Linux. Modalidad: remoto no confirmado'},
+])
+def test_ambiguous_or_negated_mode_has_no_bonus(job):
+    _, pos, warns = evaluate(job, BASE)
+    assert not any('Modalidad compatible' in r for r in pos)
+    assert any('Modalidad por confirmar' in w for w in warns)
+
+
+def test_language_markers_do_not_cross_clauses_or_invent_requirements():
+    _, _, warns = run('Linux. English C1 required. French B2 optional.')
+    assert any('Idioma requerido: english' in w for w in warns)
+    assert any('Idioma deseable: french' in w for w in warns)
+    _, _, benefit = run('Linux. Ofrecemos curso de inglés B2 gratuito.')
+    assert not any('Idioma requerido' in w or 'Idioma deseable' in w for w in benefit)

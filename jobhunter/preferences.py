@@ -10,7 +10,7 @@ from .matching import contains, has_skill, norm
 
 _MODALITIES = {'remoto': ('remoto', 'remote', 'fully remote', 'teletrabajo'),
                'hibrido': ('hibrido', 'hybrid'), 'presencial': ('presencial', 'onsite', 'on-site')}
-_GEO_MODES = {'fully_remote':'remoto', 'remote_local':'remoto', 'hybrid':'hibrido', 'onsite':'presencial'}
+_GEO_MODES = {'fully_remote':'remoto', 'remote_local':'remoto', 'hybrid':'hibrido', 'onsite':'presencial', 'no_remote':'presencial'}
 _LANGUAGE = re.compile(r'\b(ingles|english|espanol|spanish|portugues|portuguese|frances|french)\s*[:\-]?\s*(a[12]|b[12]|c[12]|basico|intermedio|avanzado|fluido|nativo|basic|intermediate|advanced|fluent|native)\b|\b(fluent|native|advanced)\s+(english|spanish|portuguese|french)\b')
 _LANG_NAMES = {'ingles':'en','english':'en','espanol':'es','spanish':'es','portugues':'pt','portuguese':'pt','frances':'fr','french':'fr'}
 # Descriptores libres no equivalen a certificados CEFR; solo se compara CEFR con CEFR.
@@ -20,6 +20,9 @@ _CLAUSE = re.compile(r'(obligatori[oa]s?|requerid[oa]s?|required|must have|desea
 
 
 def _modality(text: str) -> set[str]:
+    value = norm(text)
+    if re.search(r'\b(no|not|sin|without|temporalmente|temporarily|temporary)\b', value):
+        return set()
     return {key for key, words in _MODALITIES.items() if any(contains(text, word) for word in words)}
 
 
@@ -31,9 +34,9 @@ def preference_effects(job: dict, profile: dict, affinity: bool) -> tuple[int, l
     body = norm(raw)
     wanted = set().union(*(_modality(str(m)) for m in prefs.get('modalities') or []))
     geo_mode = (job.get('geo') or {}).get('modality')
-    mode = {_GEO_MODES[geo_mode]} if geo_mode in _GEO_MODES else _modality(str(job.get('location') or ''))
+    mode = ({_GEO_MODES[geo_mode]} if geo_mode in _GEO_MODES else set()) if geo_mode else _modality(str(job.get('location') or ''))
     # Evitar inferir «remoto» de una descripción de la empresa. Solo un marcador de modalidad.
-    if not mode:
+    if not mode and not geo_mode:
         explicit = re.search(r'\b(?:modalidad|work mode)\s*:\s*([^.;\n]+)', body)
         if explicit:
             mode = _modality(explicit.group(1))
@@ -50,8 +53,14 @@ def preference_effects(job: dict, profile: dict, affinity: bool) -> tuple[int, l
     for match in _LANGUAGE.finditer(body):
         name, required = (match.group(1), match.group(2)) if match.group(1) else (match.group(4), match.group(3))
         # «deseable», negaciones y frases ambiguas se revisan; nunca se prometen como cumplidas.
-        context = body[max(0, match.start()-45):match.end()+45]
+        left = max((body.rfind(sep, 0, match.start()) for sep in ('.', ';', '\n', '·')), default=-1) + 1
+        right = min((pos for sep in ('.', ';', '\n', '·') if (pos := body.find(sep, match.end())) >= 0), default=len(body))
+        context = body[left:right]
         optional = any(contains(context, word) for word in ('deseable', 'optional', 'nice to have', 'no requiere', 'not required', 'no es obligatorio'))
+        required_marker = any(contains(context, word) for word in ('required', 'requirement', 'requisito', 'requisitos', 'obligatorio', 'obligatoria', 'se requiere', 'necesario', 'must', 'essential', 'excluyente'))
+        if not optional and not required_marker:
+            warnings.append(f'Idioma mencionado por confirmar: {name} {required}; no se clasifica como requisito')
+            continue
         label = 'Idioma deseable' if optional else 'Idioma requerido'
         language = next((item for item in profile.get('languages') or [] if _LANG_NAMES.get(norm(item.get('name', ''))) == _LANG_NAMES[name]), None)
         if not language:

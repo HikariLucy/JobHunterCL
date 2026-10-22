@@ -153,3 +153,20 @@ def test_semantically_invalid_profile_is_corrupt(tmp_path, value):
     with pytest.raises(ProfileWriteError):
         save_profile(value, path)
     assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize('invalid', [
+    {'preferences': {'salary_min': 'bad'}}, {'sources': {'greenhouse_boards': None}},
+    {'languages': [{'name': 123}]}, {'education': [{'title':'Estudio','status':'inventado'}]},
+    {'experience': [{'role':'Cargo','kind':'inventado'}]}, {'preferences': {'modalities': [123]}},
+])
+def test_nested_corruption_cannot_replace_good_backup(tmp_path, invalid):
+    path = tmp_path / 'profile.json'
+    save_profile({'titles':['bueno']}, path)
+    save_profile({'titles':['otro']}, path)
+    path.write_text(json.dumps(invalid))
+    assert not profile_status(path)['readable']
+    with pytest.raises(ProfileWriteError):
+        save_profile(invalid, path)
+    save_profile({'titles':['recuperado']}, path)
+    assert _read(backup_path(path)) == {'titles':['bueno']}
