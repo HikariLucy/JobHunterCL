@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { STATUSES, type HistoryEntry, type Job, type Status } from "../api/types";
 import { formatDate, relativeTime } from "../utils/format";
@@ -77,6 +78,7 @@ export function JobCard({ job, onChange, defaultOpen = false }: {
             <a className="btn btn-primary" href={job.url} target="_blank" rel="noopener noreferrer">
               Abrir oferta original ↗
             </a>
+            <Link className="btn" to={`/ofertas/${encodeURIComponent(job.id)}/adaptar`}>Adaptar mi CV</Link>
             <label className="inline-field">
               Estado
               <select value={job.status} disabled={saving} onChange={(e) => patch({ status: e.target.value as Status })}>

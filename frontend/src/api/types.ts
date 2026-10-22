@@ -188,3 +188,26 @@ export interface CvPreview {
   skills: string[]; partial: boolean; warnings: string[];
   uninterpreted: {tex_span: [number, number]; raw_tex: string; reason: string}[];
 }
+
+export interface Requirement {
+  text: string; kind: 'required'|'nice_to_have'|'unknown'; skill: string|null; category: string;
+}
+export interface JobAnalysis {
+  job_id: string; title: string; company: string; lang: 'es'|'en'; description: string;
+  description_sha256: string; requirements: Requirement[]; partial: boolean; warnings: string[];
+}
+export interface CvEvidence {section_key: string; quote: string; tex_span: [number,number]}
+export interface CvSuggestion {
+  id: string; action: 'reorder'|'emphasize'|'remove'|'gap'|'rephrase'; section_key: string;
+  before: string; after: string|null; rationale: string; evidence: CvEvidence[];
+  status: 'pending'|'accepted'|'rejected'; requirement_indices: number[]; tex_span: [number,number]|null;
+}
+export interface TailoringPlan {
+  id: string; job_id: string; cv_id: string; cv_name: string; cv_sha256: string; lang: 'es'|'en';
+  revision: number; state: 'review'|'generated'; analysis: JobAnalysis; coverage: number;
+  suggestions: CvSuggestion[]; matches: {requirement_index: number; evidence: CvEvidence; confidence: string; rationale: string}[];
+  blockers: string[]; cv_partial: boolean; cv_changed: boolean; job_changed: boolean; artifact_sha256: string|null;
+}
+export interface TailoringPreview {
+  revision: number; original: string; result: string; diff: string; sha256: string; blockers: string[]; applied: string[];
+}

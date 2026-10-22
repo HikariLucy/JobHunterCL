@@ -1,5 +1,5 @@
 import type {
-  CvMetadata, CvPreview, AppConfig, Dashboard, Health, HistoryEntry, ImportResult, Job, JobPage, JobQuery,
+  CvMetadata, CvPreview, JobAnalysis, TailoringPlan, TailoringPreview, CvSuggestion, AppConfig, Dashboard, Health, HistoryEntry, ImportResult, Job, JobPage, JobQuery,
   Profile, ProfileStatus, ScanRun, SearchStatus, Status, Tracking,
 } from "./types";
 
@@ -68,6 +68,18 @@ export function toQuery(params: JobQuery): string {
 const json = (body: unknown) => JSON.stringify(body);
 
 export const api = {
+  analyzeJob: (id: string) => request<JobAnalysis>(`/tailoring/jobs/${encodeURIComponent(id)}/analysis`),
+  createPlan: (job_id: string, cv: CvMetadata, lang: 'es'|'en') => request<TailoringPlan>('/tailoring/plans', {
+    method: 'POST', body: json({job_id, cv_id: cv.id, expected_cv_sha256: cv.sha256, lang}),
+  }),
+  plan: (id: string) => request<TailoringPlan>(`/tailoring/plans/${encodeURIComponent(id)}`),
+  decideSuggestion: (p: TailoringPlan, id: string, status: CvSuggestion['status']) => request<TailoringPlan>(`/tailoring/plans/${p.id}/suggestions/${encodeURIComponent(id)}`, {
+    method: 'PATCH', body: json({expected_revision: p.revision, status}),
+  }),
+  planPreview: (p: TailoringPlan) => request<TailoringPreview>(`/tailoring/plans/${p.id}/preview?expected_revision=${p.revision}`),
+  generateCv: (p: TailoringPlan, preview: TailoringPreview) => request<TailoringPlan>(`/tailoring/plans/${p.id}/generate`, {
+    method: 'POST', body: json({expected_revision: p.revision, preview_sha256: preview.sha256}),
+  }),
   cvs: () => request<CvMetadata[]>("/cv"),
   cvPreview: (id: string) => request<CvPreview>(`/cv/${encodeURIComponent(id)}/preview`),
   importCv: (file: File, name: string, lang: 'es' | 'en') => request<CvMetadata>("/cv/import", {

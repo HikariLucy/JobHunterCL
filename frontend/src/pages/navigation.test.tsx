@@ -113,3 +113,19 @@ it('cambiar solo la consulta invalida una redirección pendiente', async () => {
   await act(async () => { resolve(status); await pending; });
   expect(screen.getByLabelText('Ruta actual')).toHaveTextContent(/^\/ofertas$/);
 });
+
+it('Adaptar mi CV navega dentro de React sin reactivar onboarding sin perfil', async () => {
+  setup();
+  const { makeJob } = await import('../test/helpers');
+  const job = makeJob();
+  vi.spyOn(api, 'jobs').mockResolvedValue({items:[job], total:1, stored:1});
+  vi.spyOn(api, 'history').mockResolvedValue([]);
+  vi.spyOn(api, 'analyzeJob').mockResolvedValue({job_id:job.id,title:job.title,company:job.company,lang:'es',description:'',description_sha256:'a'.repeat(64),partial:true,warnings:[],requirements:[]});
+  open(); await screen.findByText('Paso 1 de 7');
+  await visit('Explorar ofertas', '/ofertas');
+  await userEvent.setup().click(screen.getByRole('button',{name:/Desarrollador Junior Python/}));
+  await userEvent.setup().click(screen.getByRole('link',{name:'Adaptar mi CV'}));
+  await screen.findByRole('heading',{name:'Adaptar CV',level:1});
+  expect(screen.getByLabelText('Ruta actual')).toHaveTextContent(`/ofertas/${job.id}/adaptar`);
+  expect(screen.queryByText('Paso 1 de 7')).not.toBeInTheDocument();
+});

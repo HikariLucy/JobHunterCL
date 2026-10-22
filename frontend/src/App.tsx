@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { Empty } from "./components/ui";
+import { TailoringPage } from "./pages/TailoringPage";
 import { CvPage } from "./pages/CvPage";
 import { Dashboard } from "./pages/Dashboard";
 import { Explore } from "./pages/Explore";
@@ -15,6 +16,7 @@ export function App() {
         <Route index element={<Dashboard />} />
         <Route path="ofertas" element={<Explore />} />
         <Route path="seguimiento" element={<Tracking />} />
+        <Route path="ofertas/:jobId/adaptar" element={<TailoringPage />} />
         <Route path="cv" element={<CvPage />} />
         <Route path="perfil" element={<ProfilePage />} />
         <Route path="configuracion" element={<Settings />} />

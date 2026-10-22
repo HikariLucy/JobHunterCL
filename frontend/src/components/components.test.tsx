@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeJob, mockFetch } from "../test/helpers";
 import { JobCard } from "./JobCard";
@@ -43,7 +44,7 @@ describe("JobCard", () => {
       [{ status: "incompatible", evidence: "ubicación: Argentina", basis: "texto" }, "Fuera de tus zonas"],
     ] as const;
     for (const [eligibility, label] of cases) {
-      const { unmount } = render(<JobCard job={makeJob({ eligibility: { ...eligibility } })} onChange={() => {}} />);
+      const { unmount } = render(<MemoryRouter><JobCard job={makeJob({ eligibility: { ...eligibility } })} onChange={() => {}} /></MemoryRouter>);
       const badge = screen.getByText(label);
       expect(badge).toHaveAttribute("title", eligibility.evidence);
       expect(badge).toHaveAccessibleName(`${label}: ${eligibility.evidence}`);
@@ -61,7 +62,7 @@ describe("JobCard", () => {
       "PATCH /api/jobs/abc123": (_u, init) => ({ ...job, ...JSON.parse(String(init.body)) }),
     });
     const onChange = vi.fn();
-    render(<JobCard job={job} onChange={onChange} />);
+    render(<MemoryRouter><JobCard job={job} onChange={onChange} /></MemoryRouter>);
     await user.click(screen.getByRole("button", { name: /Desarrollador Junior Python/ }));
     expect(screen.getByText(/Cargo objetivo/)).toBeInTheDocument();
     expect(screen.getByText(/Revisar nivel de inglés/)).toBeInTheDocument();
@@ -80,7 +81,7 @@ describe("JobCard", () => {
       "GET /api/jobs/abc123/history": () => [],
       "PATCH /api/jobs/abc123": () => new Response(JSON.stringify({ detail: "Oferta no encontrada" }), { status: 404 }),
     });
-    render(<JobCard job={makeJob()} onChange={() => {}} defaultOpen />);
+    render(<MemoryRouter><JobCard job={makeJob()} onChange={() => {}} defaultOpen /></MemoryRouter>);
     await user.type(screen.getByLabelText("Notas privadas"), "hola");
     await user.click(screen.getByRole("button", { name: "Guardar nota" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Oferta no encontrada");

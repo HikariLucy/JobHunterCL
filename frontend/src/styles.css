@@ -266,3 +266,19 @@ th { color: var(--muted); font-weight: 600; }
 .cv-text { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; background: var(--surface-2); border-radius: 8px; padding: 0.75rem; max-height: 26rem; overflow: auto; }
 .cv-section { margin: 1rem 0; }
 .cv-confirm { margin-top: 1rem; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
+
+/* M2.2: reuse existing cards, palette and spacing. Source remains escaped text. */
+.tailoring-requirements { padding-left: 1.2rem; }
+.tailoring-requirements li { margin-bottom: .8rem; }
+.tailoring-requirements blockquote, .cv-entry blockquote { margin: .4rem 0; padding-left: .8rem; border-left: 3px solid var(--border); overflow-wrap: anywhere; }
+.tailoring-compare { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1rem; }
+.tailoring-compare > div { min-width: 0; }
+.tailoring-diff span { display: inline; }
+.diff-added { color: var(--success, #21834a); }
+.diff-removed { color: var(--danger, #c54848); }
+.tailoring-reorder { border-left: 3px solid var(--accent, #5a76cd); }
+.tailoring-emphasize { border-left: 3px solid var(--success, #21834a); }
+.tailoring-remove { border-left: 3px solid var(--warning, #b47b28); }
+@media (max-width: 700px) { .tailoring-compare { grid-template-columns: minmax(0,1fr); } }
+.cv-source { white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; max-width: 100%; max-height: 28rem; overflow: auto; padding: .8rem; background: var(--surface-2); border-radius: 8px; font-size: .8rem; }
+.cv-hash { overflow-wrap: anywhere; }
