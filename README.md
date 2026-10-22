@@ -53,6 +53,7 @@ Copia `.env.example` a `.env`:
 |---|---|---|
 | `JOBHUNTER_DATA_DIR` | `./data` | Carpeta de datos privados |
 | `JOBHUNTER_PORT` | `8765` | Puerto inicial |
+| `JOBHUNTER_CV_MAX_BYTES` | `1000000` | Máximo de bytes por CV LaTeX |
 | `JOBHUNTER_SCHEDULER` | `1` | `0` desactiva el programador |
 
 ## Secciones
@@ -61,13 +62,14 @@ Copia `.env.example` a `.env`:
 - **Explorar ofertas:** búsqueda, filtros, puntaje explicado, enlace al original, estado y notas. Cada oferta indica si es **elegible** desde tus zonas, si su elegibilidad está **por confirmar** (p. ej. remotas restringidas a países que la fuente no informa; siguen visibles y se filtran con «Elegibilidad → Por confirmar») o si está **fuera de tus zonas**. «Remoto» en tus ubicaciones es una modalidad deseada, no un lugar.
 - **Seguimiento:** postulaciones por estado, notas e historial de cambios.
 - **Mi perfil:** asistente opcional de primera ejecución, cargos/áreas, habilidades declaradas y en aprendizaje con evidencia, formación y tipo de experiencia, idiomas y preferencias. Todo puede omitirse y completarse después. «Nivel buscado» ajusta la puntuación (vacío = nivel inicial: penaliza Senior y, en menor medida, Semi Senior).
+- **Mis CV:** importa copias privadas `.tex` ES/EN, consulta vista textual y hash, elige principal por idioma y confirma sustitución o eliminación. Originales intactos; no ejecuta LaTeX ni compila PDF. Gestor seguro validado en Linux/POSIX.
 - **Configuración:** fuentes, frecuencia de búsqueda, registro de ejecuciones, respaldo/importación.
 
 ## Datos, respaldo y privacidad
 
 - `data/` contiene la base SQLite, el perfil y las copias automáticas (`data/backups/`). **Nunca se sube a GitHub**; tampoco `.env`, CV (`*.tex`, `*.pdf`, `*.docx`), cookies ni sesiones.
 - Antes de migrar el esquema o importar un respaldo se guarda una copia de la base.
-- Para pasar el seguimiento a otro PC: **Configuración → Descargar respaldo** e **Importar** en el otro equipo. El JSON contiene datos privados; transfiérelo por un canal personal seguro. Incluye el historial de estados, que se restaura sin duplicarse si importas el mismo archivo dos veces. Es compatible con el respaldo del MVP Streamlit en ambos sentidos (los respaldos sin historial se importan igual).
+- Para pasar el seguimiento a otro PC: **Configuración → Descargar respaldo** e **Importar** en el otro equipo. El JSON contiene datos privados; transfiérelo por un canal personal seguro. Los CV y sus metadatos quedan fuera de este JSON por defecto. Incluye el historial de estados, que se restaura sin duplicarse si importas el mismo archivo dos veces. Es compatible con el respaldo del MVP Streamlit en ambos sentidos (los respaldos sin historial se importan igual).
 
 ## Fuentes y límites
 
@@ -93,10 +95,12 @@ cd frontend && npm test && npm run build
 
 Perfil y recuperación: [docs/PERFIL.md](docs/PERFIL.md) · Validación M1.4: [docs/M14_INFORME.md](docs/M14_INFORME.md) · Propuesta de producto: [docs/PRODUCTO.md](docs/PRODUCTO.md).
 
-Arquitectura: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · Integración futura de CV: [docs/CV_INTEGRACION.md](docs/CV_INTEGRACION.md) · Hitos: [ROADMAP.md](ROADMAP.md).
+Arquitectura: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · Gestión de CV M2.1: [docs/CV_INTEGRACION.md](docs/CV_INTEGRACION.md) · Hitos: [ROADMAP.md](ROADMAP.md).
 
 ## MVP anterior (Streamlit)
 
 Sigue disponible mientras se valida la paridad: `INICIAR-WINDOWS.bat` / `bash iniciar-linux.sh` (usa `launch.py`, puerto 8501). Comparte la misma base de datos; evita usar ambas interfaces a la vez. Sus dependencias están aparte, en `requirements-streamlit.txt` (~290 MB con pandas/pyarrow); esos lanzadores las instalan la primera vez. El panel nuevo no las necesita.
 
 Smoke Linux con datos temporales y sin consultar portales: `.venv/bin/python scripts/smoke_m14.py`. Comparación de ranking sintético contra `614e394`: `.venv/bin/python scripts/eval_m14.py`.
+
+Gestión LaTeX, límites y seguridad: [docs/CV_INTEGRACION.md](docs/CV_INTEGRACION.md). Informe y capturas sintéticas: [docs/M21_INFORME.md](docs/M21_INFORME.md).

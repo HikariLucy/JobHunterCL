@@ -100,3 +100,17 @@ En desarrollo Vite (5173) reenvía `/api` al backend (8765). En uso normal el ba
 ## Perfil M1.4
 
 El contrato `jobhunter/profile_schema.py` se comparte entre persistencia, API y respaldos. Así una configuración anidada inválida no reemplaza una copia válida. El asistente y Mi perfil comparten formulario y componentes; el borrador no se escribe hasta confirmar. `jobhunter/preferences.py` añade reglas de modalidad y explicaciones conservadoras de idiomas, remuneración y requisitos; la geografía conserva sus tres estados. La caché incluye perfil completo y contenido/geo de la oferta. Ver [PERFIL.md](PERFIL.md) y [M14_INFORME.md](M14_INFORME.md).
+
+## M2.1 · documentos LaTeX privados
+
+`routers/cv.py` expone gestión y vista textual; `services/cv_store.py` conserva bytes
+exactos en `<JOBHUNTER_DATA_DIR>/cv/` e índice JSON atómico versionado, separado de
+SQLite y de respaldos. No hay migración del esquema de ofertas. `cv_parser.py`
+extrae secciones con fuente/offsets y bloques opacos sin ejecutar nada. Contratos
+públicos excluyen rutas internas; el contrato de planes futuros fija hash de origen.
+
+`CvPage` reutiliza componentes/estilos y agrega `/cv` en la navegación existente.
+La extracción se presenta como texto React escapado. El onboarding sigue siendo
+opcional y no se condiciona a CV. El gestor necesita primitivas POSIX y falla cerrado
+en sistemas sin ellas; Linux verificado, portabilidad Windows pendiente. Detalles y
+límites: [CV_INTEGRACION.md](CV_INTEGRACION.md), evidencia: [M21_INFORME.md](M21_INFORME.md).

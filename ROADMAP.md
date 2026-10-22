@@ -40,7 +40,9 @@
 - [ ] Pruebas con fixtures reales anonimizados y análisis de duplicados entre fuentes.
 
 ## M2 · Preparación de postulaciones
-- [ ] Importar CV **local** y extraer datos con revisión explícita. *(diseño: docs/CV_INTEGRACION.md)*
+- [x] M2.1: importar y gestionar CV LaTeX **locales**, vista textual revisable, ES/EN, principal, hash, sustitución y eliminación. *(docs/CV_INTEGRACION.md y docs/M21_INFORME.md)*
+- [ ] M2.2: analizar requisitos, cotejar evidencia acreditada y proponer cambios trazables sin inventar; conservar fuente y revisión fijada por hash.
+- [ ] Generar copias .tex adaptadas y compilar PDF con aislamiento y límites específicos; asociar documentos con postulaciones.
 - [ ] Adaptar CV y carta sin inventar experiencia.
 - [ ] Detectar preguntas del formulario y preparar respuestas para aprobación.
 - [ ] Definir protección de secretos y políticas de retención.
@@ -67,3 +69,14 @@
 - [x] Propuesta no vinculante de producto y contratos LaTeX revisados (solo diseño).
 - [ ] Revalidar este cambio en Windows y validar paridad/diseño con el usuario antes de retirar Streamlit.
 - [ ] Ampliar cobertura semántica de requisitos/idiomas y formatos de renta con fixtures autorizados; las reglas no acreditan cumplimiento.
+
+## Modos de postulación previstos
+
+- **Manual:** el usuario prepara y envía por su cuenta.
+- **Asistido:** JobHunter prepara; el usuario revisa antes del envío.
+- **Automático:** autorización previa y reglas configurables del usuario, únicamente
+  donde las condiciones de la plataforma permitan automatización y después de
+  validar elegibilidad, documentos y respuestas. No eludir CAPTCHA/antibots.
+
+M2.1 no implementa navegador de postulaciones, acceso a cuentas ni envío de formularios.
+Pendiente: portar las garantías POSIX del gestor de CV a Windows sin degradar privacidad.
