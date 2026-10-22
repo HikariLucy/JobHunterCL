@@ -186,15 +186,31 @@ class TailoringStore:
                 raise
             return p
 
+    def _verified_artifact(self,fd,state,cv,source,expected=None,expected_sha256=None):
+        """Solo bytes que corresponden a las decisiones actuales, bajo el bloqueo."""
+        p=state.plan
+        if expected is not None:
+            self._revision(p,expected,True)
+        if p.state!='generated' or not p.artifact or not TOKEN.fullmatch(p.artifact):
+            raise CvError(409,'Genera una copia después de revisar sus diferencias.')
+        if expected_sha256 is not None and expected_sha256!=p.artifact_sha256:
+            raise CvError(409,'El SHA-256 solicitado no corresponde al documento adaptado actual.')
+        try:
+            content=self.cv._read(fd,p.artifact+'.tex',self.cv.limit*4+1000)
+        except FileNotFoundError:
+            raise CvError(409,'No está disponible el documento adaptado verificado.') from None
+        pv=preview(cv,p,source)
+        if (pv.blockers or hashlib.sha256(content).hexdigest()!=p.artifact_sha256 or
+            content!=output_bytes(cv,pv.result,source)):
+            raise CvError(409,'El documento adaptado no supera la verificación de integridad.')
+        # Validate the adapted source itself with the unchanged M2.2 grammar.
+        adapted=parse(content.decode('utf-8-sig'),cv.source)
+        from .tailoring_engine import structure_blockers
+        if structure_blockers(adapted):
+            raise CvError(409,'La estructura del documento adaptado no está admitida por M2.2.')
+        return content
+
     def download(self,plan_id):
         with self.locked() as (fd,_,index):
-            state,cv,source=self._load(fd,plan_id,index); p=state.plan
-            if p.state!='generated' or not p.artifact or not TOKEN.fullmatch(p.artifact):
-                raise CvError(409,'Genera una copia después de revisar sus diferencias.')
-            content=self.cv._read(fd,p.artifact+'.tex',self.cv.limit*4+1000)
-            # Regenerate to prove downloaded bytes correspond to approved changes.
-            pv=preview(cv,p,source)
-            if (pv.blockers or hashlib.sha256(content).hexdigest()!=p.artifact_sha256 or
-                content!=output_bytes(cv,pv.result,source)):
-                raise CvError(409,'El documento adaptado no supera la verificación de integridad.')
-            return content
+            state,cv,source=self._load(fd,plan_id,index)
+            return self._verified_artifact(fd,state,cv,source)

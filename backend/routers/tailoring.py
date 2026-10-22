@@ -6,6 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..cv_contracts import JobAnalysis, TailoringPlan, TailoringPreview
+from ..pdf_contracts import PdfCapabilities, PdfRequest, PdfStatus
+from ..services.pdf_environment import capabilities
+from ..services.pdf_service import PdfService
 from ..deps import get_db, get_settings
 from ..services.cv_store import CvError
 from ..services.job_analysis import analyze
@@ -86,3 +89,29 @@ def download(plan_id: str,settings=Depends(get_settings),db=Depends(get_db)):
     with service(settings,db) as svc:
         return Response(svc.download(plan_id),media_type='application/x-tex',headers={
             'Content-Disposition':'attachment; filename="cv-adaptado.tex"','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'})
+
+
+# M2.3: no se acepta contenido TeX ni se ejecuta ningún compilador.
+
+
+@router.get('/pdf/capabilities', response_model=PdfCapabilities)
+def pdf_capabilities():
+    return capabilities()
+
+
+@router.post('/plans/{plan_id}/pdf', response_model=PdfStatus)
+def generate_pdf(plan_id: str, body: PdfRequest, settings=Depends(get_settings), db=Depends(get_db)):
+    with service(settings, db) as svc:
+        return PdfService(svc).generate(plan_id, body.expected_revision, body.expected_tex_sha256)
+
+
+@router.get('/plans/{plan_id}/pdf', response_model=PdfStatus)
+def pdf_status(plan_id: str, expected_revision: int=Query(ge=1), settings=Depends(get_settings), db=Depends(get_db)):
+    with service(settings, db) as svc:
+        return PdfService(svc).status(plan_id, expected_revision)
+
+
+@router.get('/plans/{plan_id}/pdf/download')
+def download_pdf(plan_id: str, expected_revision: int=Query(ge=1), settings=Depends(get_settings), db=Depends(get_db)):
+    with service(settings, db) as svc:
+        return PdfService(svc).download(plan_id, expected_revision)

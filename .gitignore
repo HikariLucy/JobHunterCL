@@ -34,3 +34,8 @@ storage_state*.json
 
 # Respaldos exportados desde el panel (contienen perfil, notas y seguimiento)
 jobhunter_respaldo*.json
+
+# M2.3: trazabilidad documental privada y sesiones del navegador de prueba
+*.pdf-audit
+*.pdf-status
+.playwright-mcp/

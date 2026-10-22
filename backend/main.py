@@ -12,7 +12,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.staticfiles import StaticFiles
 
 from jobhunter.storage import STATUSES
@@ -54,6 +56,16 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
     app = FastAPI(title="JobHunter CL", version=__version__, lifespan=lifespan,
                   docs_url="/api/docs", openapi_url="/api/openapi.json", redoc_url=None)
     app.state.settings = settings
+
+    @app.exception_handler(RequestValidationError)
+    async def private_validation(request, exc):
+        if request.url.path.startswith(("/api/cv", "/api/tailoring")):
+            # Pydantic errors can echo rejected input (including arbitrary TeX,
+            # paths or secrets). Never serialize exc/body/errors on private routes.
+            return JSONResponse(status_code=422, content={
+                "detail": "Solicitud documental inválida: comprueba los campos, identificadores y revisión requeridos."})
+        return await request_validation_exception_handler(request, exc)
+
     # Protección frente a DNS rebinding: solo se aceptan peticiones dirigidas a la máquina local.
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.allowed_hosts))
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.cors_origins),
