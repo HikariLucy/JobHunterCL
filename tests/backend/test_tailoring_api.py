@@ -137,3 +137,66 @@ def test_conflicting_approvals_block_generation(client,settings):
     p=decide(client,p,reorder,'rejected').json()
     pv=view(client,p).json(); assert not pv['blockers']
     assert generate(client,p,pv['sha256']).status_code==200
+
+
+def test_actual_concurrent_decisions_serialize(client,settings):
+    from concurrent.futures import ThreadPoolExecutor
+    _,_,p=setup_plan(client,settings); s=p['suggestions'][-1]
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        a=pool.submit(decide,client,p,s,'accepted'); b=pool.submit(decide,client,p,s,'rejected')
+        assert sorted([a.result().status_code,b.result().status_code])==[200,409]
+
+
+def test_generation_write_failure_never_publishes_or_overwrites(client,settings,monkeypatch):
+    _,_,p=setup_plan(client,settings)
+    pv=view(client,p).json(); done=generate(client,p,pv['sha256']).json()
+    root=settings.data_dir/'cv'/'tailoring'; before={p.name:p.read_bytes() for p in root.iterdir()}
+    original=CvStore._atomic
+    def fail(self,fd,name,content):
+        if name==p['id']+'.json': raise OSError('synthetic commit failure')
+        return original(self,fd,name,content)
+    with monkeypatch.context() as m:
+        m.setattr(CvStore,'_atomic',fail)
+        assert generate(client,done,pv['sha256']).status_code==500
+    assert {p.name:p.read_bytes() for p in root.iterdir()}==before
+    assert client.get(f"/api/tailoring/plans/{p['id']}/download").status_code==200
+
+
+def test_snapshot_fsync_failure_and_directory_escape(client,settings,monkeypatch,tmp_path):
+    _,cv,p=setup_plan(client,settings); root=settings.data_dir/'cv'/'tailoring'
+    before=set(os.listdir(root))
+    with monkeypatch.context() as m:
+        m.setattr(os,'fsync',lambda _: (_ for _ in ()).throw(OSError('synthetic fsync')))
+        assert client.post('/api/tailoring/plans',json={'job_id':p['job_id'],'cv_id':cv['id'],'expected_cv_sha256':cv['sha256'],'lang':'es'}).status_code==500
+    assert set(os.listdir(root))==before
+    root.rename(root.with_name('saved-tailoring')); outside=tmp_path/'outside-dir'; outside.mkdir(); root.symlink_to(outside,target_is_directory=True)
+    assert client.get(f"/api/tailoring/plans/{p['id']}").status_code==500
+    assert list(outside.iterdir())==[]
+
+
+def test_old_cv_hash_hardlink_and_unsupported_platform(client,settings,monkeypatch,tmp_path):
+    _,cv,p=setup_plan(client,settings)
+    assert client.post('/api/tailoring/plans',json={'job_id':p['job_id'],'cv_id':cv['id'],'expected_cv_sha256':'0'*64,'lang':'es'}).status_code==409
+    root=settings.data_dir/'cv'/'tailoring'; source=root/(p['id']+'.source')
+    os.link(source,tmp_path/'second-link')
+    assert client.get(f"/api/tailoring/plans/{p['id']}").status_code==500
+    with monkeypatch.context() as m:
+        m.setattr(os,'supports_dir_fd',set())
+        assert client.get(f"/api/tailoring/plans/{p['id']}").status_code==500
+        assert client.get('/api/health').status_code==200
+
+
+def test_english_job_and_english_document(client,settings):
+    from tests.backend.test_tailoring_engine import EN
+    tex=TEX.replace('Proyectos','Projects').replace('Educación','Education').replace('Proyecto académico de dibujo con SVG.','Academic drawing project using SVG.').replace('Desarrollé servicios con Python y FastAPI.','Built services with Python and FastAPI.').replace('Gestioné datos con PostgreSQL.','Managed data using PostgreSQL.').replace('Ingeniería en curso desde 2022.','Engineering degree in progress since 2022.')
+    db=connection(settings.db_path);upsert_jobs(db,[{**EN,'source':'Synthetic EN','url':'https://example.invalid/en','location':'Chile'}]);db.close()
+    job=client.get('/api/jobs').json()['items'][0];cv=upload(client,tex,lang='en').json()
+    r=client.post('/api/tailoring/plans',json={'job_id':job['id'],'cv_id':cv['id'],'expected_cv_sha256':cv['sha256'],'lang':'en'})
+    assert r.status_code==201
+    p=r.json();assert p['analysis']['lang']=='en'
+    s=next(s for s in p['suggestions'] if s['action']=='emphasize')
+    p=decide(client,p,s).json();pv=view(client,p).json();assert not pv['blockers']
+    assert generate(client,p,pv['sha256']).status_code==200
+    result=client.get(f"/api/tailoring/plans/{p['id']}/download").text
+    assert 'Engineering degree in progress since 2022.' in result
+    assert 'Academic drawing project using SVG.' in result

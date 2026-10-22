@@ -107,3 +107,63 @@ def test_overlap_and_tampering_are_blocked():
     s = next(s for s in p.suggestions if s.action=='emphasize')
     s.status='accepted'; s.after='Invented Kubernetes expert'
     assert preview(cv,p).blockers
+
+
+def test_all_compatible_decision_combinations_only_keep_original_claims():
+    import itertools
+    cv=parsed(); base=make_plan(cv,analyze(ES),'es')
+    editable=[s.id for s in base.suggestions if s.action!='gap']
+    original_claims=[line.removeprefix(r'\item').strip() for line in TEX.splitlines() if line.startswith(r'\item')]
+    checked=0
+    for bits in itertools.product((False,True),repeat=len(editable)):
+        p=base.model_copy(deep=True)
+        for sid,accept in zip(editable,bits):
+            next(s for s in p.suggestions if s.id==sid).status='accepted' if accept else 'rejected'
+        pv=preview(cv,p)
+        if pv.blockers: continue
+        # Remove the only added formatting syntax; every output assertion is an
+        # unchanged original item and no item can be duplicated.
+        plain=__import__('re').sub(r'\\textbf\{([^{}]*)\}',r'\1',pv.result)
+        claims=[line.removeprefix(r'\item').strip() for line in plain.splitlines() if line.startswith(r'\item')]
+        assert set(claims)<=set(original_claims) and len(claims)==len(set(claims))
+        assert plain[:plain.index(r'\begin{itemize}')]==TEX[:TEX.index(r'\begin{itemize}')]
+        assert plain[plain.index(r'\end{itemize}'):]==TEX[TEX.index(r'\end{itemize}'):]
+        checked+=1
+    assert checked>5
+
+
+def test_learning_context_makes_entire_section_uncertain():
+    cv=parsed(TEX.replace(r'\section{Proyectos}',r'\section{Habilidades}'+'\nTecnologías que estoy aprendiendo:').replace('Desarrollé servicios con Python y FastAPI.','Python y FastAPI.'))
+    p=make_plan(cv,analyze(ES),'es')
+    assert not p.matches
+    assert not any(s.action in {'emphasize','reorder','remove'} for s in p.suggestions)
+
+
+@pytest.mark.parametrize('contact',['Contacto de referencia: Persona Demo, teléfono +56 9 1234 5678.', 'Phone: +1 (555) 123 4567.', 'Dirección: Calle de Prueba 42.', 'LinkedIn: persona-sintetica'])
+def test_contact_in_items_never_modified(contact):
+    cv=parsed(TEX.replace('Proyecto académico de dibujo con SVG.',contact))
+    p=make_plan(cv,analyze(ES),'es')
+    assert not any(s.action!='gap' for s in p.suggestions)
+
+
+def test_requirement_negation_and_optional_are_not_mandatory():
+    a=analyze({**ES,'description':'Python is not required.\nDocker optional.\nNo es obligatorio React.\nFastAPI obligatorio.'})
+    assert next(r for r in a.requirements if r.skill=='Python').kind=='unknown'
+    assert next(r for r in a.requirements if r.skill=='Docker').kind=='nice_to_have'
+    assert next(r for r in a.requirements if r.skill=='React').kind=='unknown'
+    assert next(r for r in a.requirements if r.skill=='FastAPI').kind=='required'
+
+
+def test_evidence_does_not_point_at_identical_comment():
+    cv=parsed(TEX.replace('\\begin{itemize}', '% Desarrollé servicios con Python y FastAPI.\n\\begin{itemize}'))
+    p=make_plan(cv,analyze(ES),'es')
+    for m in p.matches:
+        a,b=m.evidence.tex_span
+        line=cv.source_text[cv.source_text.rfind('\n',0,a)+1:b]
+        assert not line.lstrip().startswith('%')
+
+
+@pytest.mark.parametrize('preamble',[r'\documentclass{customclass}', r'\documentclass{article}\usepackage{custompackage}'])
+def test_unknown_class_or_package_requires_manual_document(preamble):
+    cv=parsed(TEX.replace(r'\documentclass{article}',preamble))
+    assert make_plan(cv,analyze(ES),'es').blockers

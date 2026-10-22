@@ -19,6 +19,27 @@ _SALARY = re.compile(r'\b(?:renta|salary|salario|remuneracion):\s*(\d+(?:\.\d+)?
 _CLAUSE = re.compile(r'(obligatori[oa]s?|requerid[oa]s?|required|must have|deseables?|nice to have|optional)\s*:\s*([^\n.;]+)', re.I)
 
 
+# Shared with the document adaptation analyzer: classification only, no claim
+# that a profile or CV meets the requirement. Original quotes are kept by callers.
+_REQUIRED = re.compile(r'\b(obligatori[oa]s?|requerid[oa]s?|requisitos?(?: obligatorios?)?|se requiere[n]?|indispensable|must|required|requirements?|essential|excluyente)\b')
+_DESIRED = re.compile(r'\b(deseables?|valoramos|idealmente|nice to have|preferred|desirable|bonus|a plus|optional)\b')
+_NEUTRAL = re.compile(r'\b(usamos|utilizamos|nuestro|nuestra|ofrecemos|beneficios|our|we use|we offer|benefits|responsibilities|responsabilidades)\b')
+
+
+def requirement_kind(text: str, fallback: str = 'unknown') -> str:
+    value = norm(text)
+    if re.search(r'\b(no|not|sin|without|never)\b', value):
+        return 'unknown'
+    required, desired = bool(_REQUIRED.search(value)), bool(_DESIRED.search(value))
+    if required and desired:
+        return 'unknown'
+    if desired:
+        return 'nice_to_have'
+    if required:
+        return 'required'
+    return 'unknown' if _NEUTRAL.search(value) else fallback
+
+
 def _modality(text: str) -> set[str]:
     value = norm(text)
     if re.search(r'\b(no|not|sin|without|temporalmente|temporarily|temporary)\b', value):
@@ -106,7 +127,7 @@ def preference_effects(job: dict, profile: dict, affinity: bool) -> tuple[int, l
             warnings.append(f'{skill}: en aprendizaje; no se considera dominio demostrado')
     for clause in _CLAUSE.finditer(raw):
         kind = norm(clause.group(1))
-        label = 'Deseable' if kind.startswith(('deseable', 'nice', 'optional')) else 'Obligatorio'
+        label = 'Deseable' if requirement_kind(kind) == 'nice_to_have' else 'Obligatorio'
         fragment = clause.group(2).strip()[:240]
         declared = [s for s in skills if has_skill(norm(fragment), s)]
         warnings.append(f'{label} por revisar: {fragment}' + (f' · coincidencias declaradas: {", ".join(declared)}; confirmar alcance y evidencia' if declared else ' · sin coincidencia declarada; brecha por confirmar'))

@@ -1,7 +1,7 @@
-"""Contratos de gestión LaTeX M2.1 y adaptación futura M2.2.
+"""Contratos de gestión LaTeX M2.1 y adaptación local M2.2.
 
-Ver docs/CV_INTEGRACION.md. La gestión y extracción M2.1 están implementadas;
-los contratos de adaptación M2.2 no ejecutan cambios ni generan documentos.
+Ver docs/CV_INTEGRACION.md. Los servicios verifican fuentes, evidencias y
+transformaciones; estos modelos por sí solos no autorizan modificaciones.
 
 Principios no negociables:
 - Los .tex viven fuera del repositorio (por defecto `data/cv/`, ignorado por git).
@@ -72,7 +72,7 @@ class Requirement(BaseModel):
 
 class JobAnalysis(BaseModel):
     job_id: str
-    lang: Lang                     # idioma detectado de la oferta → CV a usar
+    lang: Lang                     # recomendación de idioma, modificable por el usuario
     requirements: list[Requirement]
     title: str = ""
     company: str = ""

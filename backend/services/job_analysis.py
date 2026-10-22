@@ -4,14 +4,12 @@ import hashlib
 import re
 
 from jobhunter.matching import contains, has_skill, norm, required_years
+from jobhunter.preferences import requirement_kind
 from ..cv_contracts import JobAnalysis, Requirement
 
 TECHNOLOGIES = ('Python', 'FastAPI', 'PostgreSQL', 'Docker', 'React', 'APIs REST', 'REST APIs',
                 'TypeScript', 'JavaScript', 'SQL', 'Linux', 'Git', 'Java', 'Kubernetes', 'AWS',
                 'Django', 'Flask', 'Node.js', 'C++', 'C#', '.NET', 'MongoDB', 'Redis')
-REQUIRED = re.compile(r'\b(obligatori[oa]s?|requerid[oa]s?|requisitos?(?: obligatorios?)?|se requiere[n]?|indispensable|must|required|requirements?|essential)\b')
-DESIRED = re.compile(r'\b(deseables?|valoramos|idealmente|nice to have|preferred|desirable|bonus|a plus)\b')
-NEUTRAL = re.compile(r'\b(usamos|utilizamos|nuestro|nuestra|ofrecemos|beneficios|our|we use|we offer|benefits|responsibilities|responsabilidades)\b')
 
 
 def fingerprint(job: dict) -> str:
@@ -36,10 +34,9 @@ def analyze(job: dict) -> JobAnalysis:
         if not quote:
             continue
         n = norm(quote)
-        req, nice = bool(REQUIRED.search(n)), bool(DESIRED.search(n))
-        kind = 'unknown' if req and nice else 'nice_to_have' if nice else 'required' if req else context
-        if NEUTRAL.search(n) and not (req or nice):
-            kind = 'unknown'; context = 'unknown'
+        kind = requirement_kind(quote, context)
+        if kind == 'unknown':
+            context = 'unknown'
         if quote.endswith(':'):
             context = kind
         skills = [t for t in TECHNOLOGIES if has_skill(quote, t)]
@@ -55,7 +52,7 @@ def analyze(job: dict) -> JobAnalysis:
             category = 'language'
         elif any(contains(n,w) for w in ('remoto','remote','hibrido','hibrida','hybrid','presencial','contrato','salary','renta','jornada')):
             category = 'condition'
-        if category or (not skills and (req or nice) and not quote.endswith(':')):
+        if category or (not skills and kind != 'unknown' and not quote.endswith(':')):
             requirements.append(Requirement(text=quote, kind=kind, category=category or 'other'))
     partial = len(description.strip()) < 80 or not requirements or description.rstrip().endswith(('…','...'))
     return JobAnalysis(job_id=job['id'], lang=lang, title=job.get('title') or '', company=job.get('company') or '',

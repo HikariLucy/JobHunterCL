@@ -12,6 +12,8 @@ from . import cv_parser
 NEGATIVE = re.compile(r'\b(no|not|never|sin|without|learning|aprendiendo|aprender|aprendizaje|pendiente|basico|basic|familiar|interes|interest|deseo|wish|want|curso|course)\b')
 # Restrict the whole document, not just the spans we will edit. TeX definitions,
 # catcodes, math, includes and unknown environments make local reasoning unsafe.
+CONTACT_INFO = re.compile(r'\b(contacto|contact|telefono|phone|celular|correo|email|direccion|address|linkedin|referencia|reference)\b|(?:\+?\d[ ()-]*){7,}')
+
 ALLOWED = {'documentclass','usepackage','begin','end','section','item',
            'textbf','textit','emph','name','email','phone','address','title','author','date','url','href','maketitle'}
 
@@ -20,6 +22,11 @@ def structure_blockers(cv):
     masked = cv_parser._mask_comments(cv.source_text)
     reason = 'Generación bloqueada: estructura LaTeX no soportada; revisa y edita una copia manualmente.'
     if cv.partial or cv.uninterpreted:
+        return [reason]
+    classes = re.findall(r'\\documentclass(?:\[[^\]]*\])?\{([^{}]*)\}', masked)
+    packages = re.findall(r'\\usepackage(?:\[[^\]]*\])?\{([^{}]*)\}', masked)
+    supported_packages = {'inputenc','fontenc','babel','geometry','xcolor','hyperref','enumitem'}
+    if classes != ['article'] or any(p.strip() not in supported_packages for group in packages for p in group.split(',')):
         return [reason]
     if any(m[1] not in ALLOWED for m in cv_parser.COMMAND.finditer(masked)):
         return [reason]
@@ -59,7 +66,7 @@ def structure_blockers(cv):
 
 def _lists(cv):
     for sec in cv.sections:
-        if sec.kind not in {'projects','experience','skills'}:
+        if sec.kind not in {'projects','experience','skills'} or NEGATIVE.search(norm(sec.text)):
             continue
         start, end = sec.tex_span
         for match in re.finditer(r'\\begin\{itemize\}(.*?)\\end\{itemize\}', cv.source_text[start:end], re.S):
@@ -76,6 +83,8 @@ def _lists(cv):
                 text = raw[len('\\item'):].strip()
                 # Simple standalone prose only. No comments, links, braces,
                 # optional labels, macros or contact information can be edited.
+                if CONTACT_INFO.search(norm(text)) or text.endswith(':') or re.search(r'\b(anterior|previous|above|este proyecto|this project|dicho proyecto)\b',norm(text)):
+                    items = []; break
                 if not text or len(text)>500 or re.search(r'[\\{}%$&#^_~\[\]@]', text) or re.search(r'https?://|\b\d{6,}\b',text):
                     items = []; break
                 items.append((a,b,raw,text))
@@ -84,22 +93,27 @@ def _lists(cv):
 
 
 def _matches(cv, analysis):
+    safe = list(cv_parser._mask_comments(cv.source_text))
+    for block in cv.uninterpreted:
+        a,b=block.tex_span
+        safe[a:b]=[' ']*(b-a)
+    safe = ''.join(safe)
     out = []
     for idx,req in enumerate(analysis.requirements):
         if not req.skill:
             continue
         for sec in cv.sections:
-            if sec.kind not in {'projects','experience','skills'}:
+            if sec.kind not in {'projects','experience','skills'} or NEGATIVE.search(norm(sec.text)):
                 continue
             for line in sec.text.splitlines():
-                if len(line)>500 or not contains(line,req.skill) or NEGATIVE.search(norm(line)):
+                if len(line)>500 or not contains(line,req.skill) or NEGATIVE.search(norm(line)) or CONTACT_INFO.search(norm(line)):
                     continue
                 # Only use a quote that exists BOTH in extracted text and in the
                 # exact source span. Formatting can make this impossible: skip it.
                 quote = line.removeprefix('• ').strip()
                 if not quote or len(quote)>500:
                     continue
-                pos = sec.raw_tex.find(quote)
+                pos = safe[slice(*sec.tex_span)].find(quote)
                 if pos < 0:
                     continue
                 a = sec.tex_span[0]+pos
@@ -147,8 +161,8 @@ def make_plan(cv, analysis, lang):
                 add('reorder',sec.key,cv.source_text[a:b],''.join(items[i][2] for i in order),(a,b),
                     [h.evidence for hs in related for h in hs], [h.requirement_index for hs in related for h in hs],
                     'Priorizar viñetas completas dentro de la misma lista. Orden estable según menciones documentadas; conserva texto, contexto de sección y fechas.')
-    # Coverage is only of bare skill requirements with documented mentions;
-    # composite years/languages/degrees are deliberately never counted as met.
+    # Coverage counts required entries with literal mentions, not fulfillment.
+    # Separate experience/language/degree entries remain gaps.
     required = [i for i,r in enumerate(analysis.requirements) if r.kind=='required']
     return TailoringPlan(job_id=analysis.job_id,cv_id=cv.source.id,cv_sha256=cv.source.sha256,
                          lang=lang, coverage=len(set(required)&matched)/len(required) if required else 0,
