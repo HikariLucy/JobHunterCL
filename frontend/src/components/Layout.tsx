@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 
 const NAV = [
@@ -25,6 +25,16 @@ function useBackendOnline(): boolean | undefined {
 
 export function Layout() {
   const online = useBackendOnline();
+  const navigate = useNavigate();
+  useEffect(() => {
+    let alive = true;
+    if (!sessionStorage.getItem('jobhunter-onboarding-dismissed')) {
+      api.profileStatus().then(status => {
+        if (alive && !status.exists && status.readable) navigate('/perfil', {replace: true});
+      }, () => { /* La página de perfil ofrece el error y reintento. */ });
+    }
+    return () => {alive = false;};
+  }, [navigate]);
   return (
     <div className="shell">
       <aside className="sidebar">

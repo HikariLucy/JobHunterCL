@@ -11,6 +11,7 @@ const SEARCH = { running: false, last_scan: null, next_allowed_at: null, min_int
                  scan_interval_minutes: 0, next_scheduled_at: null, recent_runs: [] };
 const COUNTS = { Nueva: 1, Revisar: 0, Preparada: 0, Postulada: 2, Descartada: 0 };
 const base = {
+  "GET /api/profile/status": () => ({exists: true, readable: true}),
   "GET /api/health": () => ({ status: "ok" }),
   "GET /api/jobs/sources": () => ["Get on Board"],
 };

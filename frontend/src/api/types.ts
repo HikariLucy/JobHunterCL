@@ -111,11 +111,13 @@ export interface ExperienceItem {
   organization: string;
   period: string;
   summary: string;
+  kind?: "" | "empleo" | "practica" | "proyecto" | "voluntariado";
 }
 
 export interface LanguageItem {
   name: string;
   level: string;
+  evidence?: string;
 }
 
 export interface Preferences {
@@ -123,6 +125,7 @@ export interface Preferences {
   seniority: string[];
   salary_min: number | null;
   salary_currency: string;
+  salary_period?: "mensual" | "anual";
   relocation: boolean;
   notes: string;
 }
@@ -136,7 +139,19 @@ export interface Profile {
   experience: ExperienceItem[];
   languages: LanguageItem[];
   preferences: Preferences;
+  areas?: string[];
+  learning_skills?: string[];
+  skill_evidence?: { skill: string; evidence: string }[];
+  education?: { title: string; institution: string; period: string; status: "" | "completado" | "en_curso" | "incompleto" }[];
   [legacy: string]: unknown;
+}
+
+export interface ProfileStatus {
+  exists: boolean;
+  readable: boolean;
+  error: string | null;
+  backup_available: boolean;
+  new_profile: Profile;
 }
 
 export interface AppConfig {

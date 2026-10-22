@@ -1,6 +1,6 @@
 import type {
   AppConfig, Dashboard, Health, HistoryEntry, ImportResult, Job, JobPage, JobQuery,
-  Profile, ScanRun, SearchStatus, Status, Tracking,
+  Profile, ProfileStatus, ScanRun, SearchStatus, Status, Tracking,
 } from "./types";
 
 export const OFFLINE_MESSAGE =
@@ -80,6 +80,7 @@ export const api = {
   searchStatus: () => request<SearchStatus>("/search/status"),
   runSearch: () => request<ScanRun>("/search", { method: "POST" }),
   profile: () => request<Profile>("/profile"),
+  profileStatus: () => request<ProfileStatus>("/profile/status"),
   saveProfile: (p: Profile) => request<Profile>("/profile", { method: "PUT", body: json(p) }),
   config: () => request<AppConfig>("/config"),
   saveConfig: (c: Partial<Pick<AppConfig, "sources" | "scan_interval_minutes">>) =>
