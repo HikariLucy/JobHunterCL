@@ -175,3 +175,16 @@ export interface Health {
   statuses: Status[];
   scheduler: boolean;
 }
+
+/** M2.1: nunca contiene rutas internas. */
+export interface CvMetadata {
+  id: string; name: string; lang: 'es' | 'en'; sha256: string;
+  imported_at: string; updated_at: string; size_bytes: number; is_primary: boolean;
+}
+export interface CvPreview {
+  source: {id: string; lang: 'es' | 'en'; sha256: string; imported_at: string};
+  source_text: string;
+  sections: {key: string; kind: string; title: string; text: string; raw_tex: string; tex_span: [number, number]}[];
+  skills: string[]; partial: boolean; warnings: string[];
+  uninterpreted: {tex_span: [number, number]; raw_tex: string; reason: string}[];
+}

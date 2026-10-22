@@ -27,6 +27,7 @@ function Location() {
 
 function setup(exists = false) {
   const fetch = mockFetch({
+    'GET /api/cv': () => [],
     'GET /api/health': () => ({status: 'ok'}),
     'GET /api/profile/status': () => ({...status, exists}),
     'GET /api/profile': () => profile,
@@ -54,12 +55,13 @@ async function visit(label: string, path: string) {
   expect(screen.getByRole('heading', {name: label, level: 1})).toBeInTheDocument();
 }
 
-it('sin perfil permite abandonar el asistente y recorrer los cinco enlaces sin redirecciones', async () => {
+it('sin perfil permite abandonar el asistente y recorrer las seis secciones sin redirecciones', async () => {
   setup(); open();
   await screen.findByText('Paso 1 de 7');
   await visit('Dashboard', '/');
   await visit('Explorar ofertas', '/ofertas');
   await visit('Seguimiento', '/seguimiento');
+  await visit('Mis CV', '/cv');
   await visit('Configuración', '/configuracion');
   await visit('Mi perfil', '/perfil');
 });
@@ -69,7 +71,7 @@ it('cancelar respeta la omisión al volver a Mi perfil y no guarda datos', async
   await screen.findByText('Paso 1 de 7');
   await userEvent.setup().click(screen.getByRole('button', {name: 'Cancelar'}));
   for (const [label, path] of [['Dashboard', '/'], ['Explorar ofertas', '/ofertas'],
-    ['Seguimiento', '/seguimiento'], ['Configuración', '/configuracion'], ['Mi perfil', '/perfil']]) {
+    ['Seguimiento', '/seguimiento'], ['Mis CV', '/cv'], ['Configuración', '/configuracion'], ['Mi perfil', '/perfil']]) {
     await visit(label, path);
   }
   expect(screen.queryByText('Paso 1 de 7')).not.toBeInTheDocument();
@@ -78,9 +80,9 @@ it('cancelar respeta la omisión al volver a Mi perfil y no guarda datos', async
   expect(fetch.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
 });
 
-it('perfil existente permite los cinco enlaces sin abrir onboarding', async () => {
+it('perfil existente permite las seis secciones sin abrir onboarding', async () => {
   setup(true); open(); await settled();
-  for (const [label, path] of [['Explorar ofertas', '/ofertas'], ['Seguimiento', '/seguimiento'],
+  for (const [label, path] of [['Explorar ofertas', '/ofertas'], ['Seguimiento', '/seguimiento'], ['Mis CV', '/cv'],
     ['Configuración', '/configuracion'], ['Mi perfil', '/perfil'], ['Dashboard', '/']]) {
     await visit(label, path);
     expect(screen.queryByText('Paso 1 de 7')).not.toBeInTheDocument();

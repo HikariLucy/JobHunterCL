@@ -256,3 +256,13 @@ th { color: var(--muted); font-weight: 600; }
   .search-btn { align-items: flex-start; }
   .search-msg { text-align: left; }
 }
+
+/* M2.1: controles y superficies existentes, sin cambios al layout global. */
+.cv-form { border: 0; padding: 0; margin: 0; min-width: 0; }
+.cv-form input[type="file"], .cv-confirm input[type="file"] { max-width: 100%; }
+.cv-entry { min-width: 0; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
+.cv-entry:last-child { border-bottom: 0; padding-bottom: 0; }
+.cv-hash { overflow-wrap: anywhere; }
+.cv-text { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; background: var(--surface-2); border-radius: 8px; padding: 0.75rem; max-height: 26rem; overflow: auto; }
+.cv-section { margin: 1rem 0; }
+.cv-confirm { margin-top: 1rem; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }

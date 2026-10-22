@@ -1,5 +1,5 @@
 import type {
-  AppConfig, Dashboard, Health, HistoryEntry, ImportResult, Job, JobPage, JobQuery,
+  CvMetadata, CvPreview, AppConfig, Dashboard, Health, HistoryEntry, ImportResult, Job, JobPage, JobQuery,
   Profile, ProfileStatus, ScanRun, SearchStatus, Status, Tracking,
 } from "./types";
 
@@ -68,6 +68,17 @@ export function toQuery(params: JobQuery): string {
 const json = (body: unknown) => JSON.stringify(body);
 
 export const api = {
+  cvs: () => request<CvMetadata[]>("/cv"),
+  cvPreview: (id: string) => request<CvPreview>(`/cv/${encodeURIComponent(id)}/preview`),
+  importCv: (file: File, name: string, lang: 'es' | 'en') => request<CvMetadata>("/cv/import", {
+    method: "POST", body: file, headers: {"Content-Type": "application/x-tex",
+      "X-CV-Filename": encodeURIComponent(file.name), "X-CV-Name": encodeURIComponent(name), "X-CV-Lang": lang},
+  }),
+  primaryCv: (id: string) => request<CvMetadata>(`/cv/${encodeURIComponent(id)}/primary`, {method: "PUT"}),
+  replaceCv: (cv: CvMetadata, file: File) => request<CvMetadata>(`/cv/${encodeURIComponent(cv.id)}?confirm=true&expected_sha256=${cv.sha256}`, {
+    method: "PUT", body: file, headers: {"Content-Type": "application/x-tex", "X-CV-Filename": encodeURIComponent(file.name)},
+  }),
+  deleteCv: (cv: CvMetadata) => request<{deleted: boolean}>(`/cv/${encodeURIComponent(cv.id)}?confirm=true&expected_sha256=${cv.sha256}`, {method: "DELETE"}),
   health: () => request<Health>("/health"),
   dashboard: () => request<Dashboard>("/dashboard"),
   jobs: (q: JobQuery = {}) => request<JobPage>(`/jobs${toQuery(q)}`),
