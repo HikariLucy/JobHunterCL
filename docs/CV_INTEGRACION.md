@@ -1,6 +1,6 @@
 # Integración local de currículums LaTeX
 
-M2.1 implementa gestión y extracción textual. La adaptación, PDF y envío son futuros.
+M2.1 implementa gestión y extracción textual; M2.2 añade análisis, revisión y copias `.tex` adaptadas locales. PDF corresponde a M2.3; envío queda para fases posteriores.
 
 ## Uso
 
@@ -112,25 +112,148 @@ La vista React nunca usa HTML arbitrario, enlaces activos derivados del fuente n
 `dangerouslySetInnerHTML`. No hay procesos, `input` de archivos, macros ejecutadas,
 `--shell-escape`, compilación automática, PDF ni integración con cuentas.
 
-## Contratos M2.2
+## Adaptación M2.2
 
-Se conservan `JobAnalysis`, `Requirement`, `Evidence`, `Suggestion`, `TailoringPlan`,
-`Tailor` y `validate_suggestion`; `TailoringPlan.cv_sha256` permite fijar una revisión
-para la siguiente fase. M2.2 deberá exigirlo al generar planes y preservar un
-snapshot fuente por cada plan antes de permitir sustituir/eliminar documentos.
-No hay endpoints activos de adaptación o render.
+Desde una oferta expandida: **Adaptar mi CV → elegir documento e idioma de trabajo
+→ analizar y crear plan → revisar evidencia y decidir cada cambio → revisar
+Diferencias propuestas → Generar CV adaptado → Descargar .tex adaptado**.
+Sin CV se conserva el análisis y se ofrece Mis CV. No necesita perfil completo.
+La URL con `?plan=<id>` permite reabrir el plan; no es un enlace público a su fuente.
+El idioma recomendado es modificable y no depende de que el trabajo sea remoto.
+Elegir otro idioma no traduce el CV: el texto se conserva en su idioma original.
 
-Flujo futuro: oferta → requisitos obligatorios/deseables/desconocidos → selección
-ES/EN revisable → comparar evidencia → propuestas trazables → copia `.tex` distinta
-→ PDF en aislamiento con controles específicos → documento asociado a postulación.
-Toda modificación citará el CV original o confirmación expresa del usuario. Un
-requisito sin respaldo será brecha, nunca habilidad inventada. El validador actual
-solo comprueba citas literales en texto extraído y gaps sin salida: no demuestra
-equivalencia semántica ni autoriza aplicar sugerencias. Deben validarse también
-hashes, spans y correspondencia fuente al implementar generación.
+### Contratos
 
-La modalidad remota por sí sola no decide el idioma. Una futura compilación requiere
-sandbox propio, límites de recursos/tiempo y acceso a archivos/red restringido,
-sin shell escape; detectar un compilador instalado no basta para habilitarla.
+Se extienden `JobAnalysis`, `Requirement`, `Evidence`, `Suggestion`, `TailoringPlan`
+sin retirar sus campos originales. `JobAnalysis` guarda cargo, empresa, descripción
+literal, SHA-256 de descripción, requisitos con categoría y aviso parcial.
+`Requirement.text` es un fragmento literal, `kind` es required/nice_to_have/unknown.
+Categorías: technology, experience, level, language, condition, other.
 
-Evidencias y verificación: [M21_INFORME.md](M21_INFORME.md).
+Cada `EvidenceMatch` apunta a un índice de requisito y `Evidence` contiene sección,
+cita literal, span Python Unicode y certeza `literal_mention` con explicación.
+Una coincidencia es una **mención documentada**, nunca una certificación de cumplir
+el requisito. `coverage` es la proporción de entradas obligatorias con menciones,
+no una probabilidad de contratación ni acreditación de nivel/experiencia.
+La UI no presenta este cociente como cumplimiento.
+
+Cada propuesta tiene ID, acción, sección, antes/después, span, índices de requisitos,
+evidencias, razón y pending/accepted/rejected. Las brechas no tienen salida ni span.
+Todas empiezan pending, incluidas brechas informativas, que nunca se aplican.
+`validate_suggestion` comprueba las citas; el motor además regenera propuestas desde
+fuente y oferta inmutables, verifica spans y bloquea conflictos. La comprobación
+literal aislada **no demuestra equivalencia semántica**.
+
+El plan fija `id`, `job_id`, `cv_id`, `cv_sha256`, `lang`, análisis con hash de
+descripción, evidencia, propuestas/decisiones, estado review/generated, revisión
+entera, fechas, nombre del CV, bloqueos y último artefacto/hash. La persistencia
+privada agrega huella de ID/cargo/empresa/descripción y metadatos de la fuente.
+
+### Endpoints activos
+
+Todos bajo `/api/tailoring`, sin rutas arbitrarias ni documentos estáticos:
+
+| Método | Ruta relativa | Contrato |
+|---|---|---|
+| GET | `/jobs/{job_id}/analysis` | `JobAnalysis` del texto guardado; no consulta conectores |
+| POST | `/plans` | 201 `TailoringPlan`; cuerpo job_id, cv_id, expected_cv_sha256, lang |
+| GET | `/plans/{id}` | `TailoringPlan` verificado; avisos cv_changed/job_changed |
+| PATCH | `/plans/{id}/suggestions/{sid}` | expected_revision y status; devuelve nueva revisión |
+| GET | `/plans/{id}/preview?expected_revision=N` | original, result, unified diff, SHA-256, blockers, applied y revisión |
+| POST | `/plans/{id}/generate` | expected_revision y preview_sha256; crea artefacto y nueva revisión |
+| GET | `/plans/{id}/download` | bytes `.tex` privados con Content-Disposition attachment |
+
+Los cuerpos Pydantic son estrictos y rechazan campos extra. Nunca aceptan citas,
+spans, hashes de fuente nuevos ni texto de reemplazo enviados por el navegador.
+Crear exige el hash del CV revisado; decidir/generar exigen revisión actual dentro
+del bloqueo. Generar exige además el hash exacto de la vista previa revisada.
+Un hash de preview no es autenticación; ata los bytes generados al diff aprobado.
+
+Errores: 404 recurso ausente, 409 revisión/integridad/conflicto/bloqueo, 413 tamaño,
+422 contrato inválido, 500 almacenamiento/plataforma. No se devuelven mensajes del
+SO, paths ni fuente en errores. Middleware aplica no-store y nosniff también a
+respuestas de validación/error de CV y adaptación.
+
+### Analizador y límites
+
+`job_analysis` usa únicamente campos guardados de la oferta. Reutiliza `contains`,
+`has_skill`, `norm` y `required_years` del matching y `requirement_kind` compartido
+con preferencias. Un catálogo acotado reconoce tecnologías sin convertir su
+aparición en obligación: solo marcadores explícitos o encabezados acotados la
+clasifican; negación/conflicto queda unknown. Se conservan las citas originales.
+Extrae también menciones de experiencia/nivel, idiomas y condiciones; su ausencia
+no se rellena con suposiciones. No modifica el ranking ni acredita datos del perfil.
+
+La detección ES/EN usa vocabulario del texto; empate/sin información recomienda ES.
+Texto menor de 80 caracteres, sin requisitos detectados o con final truncado
+explícito marca análisis parcial. Es una heurística: no demuestra que una descripción
+larga sea completa. El texto guardado siempre queda disponible para revisión manual;
+esta versión no implementa un editor de requisitos ni descarga descripciones externas.
+
+El matching busca frases literales en secciones reconocidas de proyectos,
+experiencia y habilidades. Exige cita presente tanto en texto extraído como en
+fuente no comentado/no opaco. Una negación o aprendizaje en la sección excluye
+conservadoramente **toda esa sección**, evitando acreditar listas bajo contexto
+ambiguo. Esto produce falsos negativos intencionales. No suma años, no equipara
+proyectos académicos con empleo y no interpreta educación como título terminado.
+Idiomas, grados, condiciones y años quedan por revisar; no hay acreditación
+semántica, equivalencias de herramientas ni inserciones desde el perfil.
+
+### Transformaciones soportadas
+
+- Reordenar viñetas completas mediante permutación estable, solo dentro de una lista.
+- Destacar un término literal mediante `\textbf{...}` dentro de una viñeta plana.
+- Omitir opcionalmente una viñeta completa sin coincidencias, previa aprobación.
+- Informar brechas; no generan cambios. Reformulación automática deshabilitada.
+
+Solo listas itemize planas de proyectos/experiencia/habilidades con texto sencillo.
+No se editan encabezado/contactos, preámbulo, configuración, secciones educativas,
+macros, inclusiones ni entornos opacos. Una lista con indicios de contacto, teléfono,
+URL, etiquetas, formato interno, referencias contextuales o viñetas ambiguas no se
+modifica. El documento completo debe superar validación estructural conservadora:
+clase article; paquetes permitidos inputenc/fontenc/babel/geometry/xcolor/hyperref/
+enumitem; comandos enumerados; documento único, llaves y entornos balanceados.
+Clases/paquetes desconocidos, macros, condicionales, matemáticas y extracción parcial
+bloquean generación. No es un intérprete TeX ni una garantía de compilación.
+
+Todos los cambios empiezan pendientes. Pending/rejected conservan el fuente.
+Reordenar una lista y destacar/omitir dentro de ella son alternativas superpuestas:
+se debe rechazar una antes de generar. El diff se recalcula después de cada decisión.
+Generar sin cambios aceptados crea una copia exacta del original (si es soportado).
+Las brechas nunca se insertan. Los únicos bytes añadidos por una transformación
+son la envoltura de formato explícita; no hay texto libre nuevo.
+
+### Persistencia privada e integridad
+
+`<JOBHUNTER_DATA_DIR>/cv/tailoring/`, carpeta 0700 y archivos 0600:
+
+- `<plan_uuid>.source`: snapshot inmutable de **bytes exactos**, BOM/CRLF incluidos.
+- `<plan_uuid>.json`: plan mutable con revisión y fuentes/metadatos fijados.
+- `<artifact_uuid>.tex`: copia adaptada nueva y verificada.
+- `<artifact_uuid>.audit`: procedencia, fechas, revisión y decisiones de generación.
+
+Se reutilizan bloqueo RLock/flock y primitivas privadas de CvStore; M2.1 no cambia
+su índice, esquema ni arquitectura. Directorio hijo abierto con O_NOFOLLOW y dir_fd;
+lecturas rechazan symlinks/hardlinks/tipos no regulares. Publicación inmutable con
+archivo temporal fsync y enlace exclusivo en el mismo directorio: no sobrescribe.
+El plan mutable se sustituye atómicamente al final. Fallo antes de comprometerlo
+retira nuevas copias; la revisión anterior sigue vigente. Las generaciones previas
+se conservan privadas con su audit aunque cambien decisiones posteriores.
+
+Toda lectura verifica SHA-256 del snapshot y reconstruye análisis/propuestas para
+compararlos con el plan. Toda generación verifica de nuevo y descarga compara bytes
+contra el resultado reconstruido. Cambios del maestro muestran aviso: se usa solo
+la instantánea original, incluso después de sustituir/eliminar el maestro. Cambios
+de cargo/empresa/descripción o eliminación de oferta bloquean decidir/generar; el
+análisis conservado sigue consultable y una copia ya generada sigue descargable.
+
+Cambiar decisiones invalida el enlace al último artefacto de ese plan y exige una
+nueva generación revisada. Los documentos no pasan por SQLite, respaldo JSON,
+public/dist, logs de contenido, compiladores, subprocess ni red. En Windows se
+mantiene el fallo seguro POSIX de M2.1. No protege frente a otro proceso con control
+de la misma cuenta, borrado forense o fallo físico. Una interrupción abrupta puede
+dejar temporales/artefactos huérfanos privados: no se publican ni se borran planes
+silenciosamente; conservar la carpeta para recuperación manual. No hay todavía
+política/UI de retención o eliminación de planes.
+
+Resultados y capturas sintéticas: [M22_INFORME.md](M22_INFORME.md).

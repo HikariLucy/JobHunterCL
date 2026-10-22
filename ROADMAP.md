@@ -41,8 +41,8 @@
 
 ## M2 · Preparación de postulaciones
 - [x] M2.1: importar y gestionar CV LaTeX **locales**, vista textual revisable, ES/EN, principal, hash, sustitución y eliminación. *(docs/CV_INTEGRACION.md y docs/M21_INFORME.md)*
-- [ ] M2.2: analizar requisitos, cotejar evidencia acreditada y proponer cambios trazables sin inventar; conservar fuente y revisión fijada por hash.
-- [ ] Generar copias .tex adaptadas y compilar PDF con aislamiento y límites específicos; asociar documentos con postulaciones.
+- [x] M2.2: análisis determinista de ofertas guardadas, menciones documentadas, brechas, propuestas conservadoras con aprobación individual y diff; instantánea privada fijada por hash y descarga de nueva copia `.tex`. Estructuras ambiguas bloqueadas. *(docs/M22_INFORME.md)*
+- [ ] M2.3: compilar PDF con aislamiento y límites específicos; asociar documentos con postulaciones. Las copias `.tex` privadas ya están disponibles en M2.2.
 - [ ] Adaptar CV y carta sin inventar experiencia.
 - [ ] Detectar preguntas del formulario y preparar respuestas para aprobación.
 - [ ] Definir protección de secretos y políticas de retención.
@@ -78,5 +78,5 @@
   donde las condiciones de la plataforma permitan automatización y después de
   validar elegibilidad, documentos y respuestas. No eludir CAPTCHA/antibots.
 
-M2.1 no implementa navegador de postulaciones, acceso a cuentas ni envío de formularios.
+M2.1/M2.2 no implementan navegador de postulaciones, acceso a cuentas ni envío de formularios.
 Pendiente: portar las garantías POSIX del gestor de CV a Windows sin degradar privacidad.
