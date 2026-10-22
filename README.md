@@ -8,31 +8,43 @@
 
 ## Windows (PowerShell)
 
-Necesitas **Python 3.11 o superior**, conexión a internet para consultar ofertas y permisos para instalar dependencias. **Opción fácil:** descomprime **todo** el ZIP, entra en `JobHunter-CL` y haz doble clic en `INICIAR-WINDOWS.bat`. El iniciador comprueba Python 3.11+, crea o reutiliza `.venv`, instala paquetes si faltan, espera a que Streamlit responda y abre el navegador. **Deja la ventana CMD abierta** mientras utilices la aplicación. Si el navegador no aparece, la propia consola imprime la URL `http://127.0.0.1:8501` (u otro puerto libre). Si prefieres la terminal, usa estos comandos:
+Requiere **Python 3.11+**, conexión a internet para nuevas búsquedas y permiso para instalar dependencias. Clona este repositorio público y usa el iniciador incluido:
 
 ```powershell
-cd "$HOME\Documents"
-# Descomprime el ZIP completo en Documentos antes de ejecutar:
-cd .\JobHunter-CL
+git clone https://github.com/HikariLucy/JobHunterCL.git
+cd JobHunterCL
+.\INICIAR-WINDOWS.bat
+```
+
+También puedes descargar el ZIP del repositorio y ejecutar `INICIAR-WINDOWS.bat` desde la carpeta extraída. El BAT crea/reutiliza `.venv`, instala dependencias si hace falta y abre Streamlit. Deja su ventana abierta mientras utilizas la aplicación. El panel estará normalmente en `http://127.0.0.1:8501` (o en otro puerto libre).
+
+Ejecución manual, desde la raíz del proyecto:
+
+```powershell
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe launch.py
 ```
 
-Si `py` no existe pero `python` sí, cambia `py -m venv .venv` por `python -m venv .venv`.
+Si no está disponible `py`, utiliza `python` para crear el entorno virtual.
 
 ## Ubuntu / Linux
 
-La opción rápida es `bash iniciar-linux.sh`; verifica las dependencias y abre el navegador al levantar el servidor. También puedes ejecutar los comandos manualmente:
+```bash
+git clone https://github.com/HikariLucy/JobHunterCL.git ~/proyectos/JobHunterCL
+cd ~/proyectos/JobHunterCL
+bash iniciar-linux.sh
+```
+
+Como alternativa manual:
 
 ```bash
-cd ~/proyectos/JobHunter-CL
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python launch.py
 ```
 
-La interfaz se abre normalmente en http://127.0.0.1:8501 (o el siguiente puerto libre). En la pestaña **Perfil y fuentes** adapta los cargos y habilidades a tu caso. Luego pulsa **Buscar nuevas ofertas**. Get on Board es la fuente inicial; Remotive y compañías de Greenhouse/Lever son opcionales. No se consulta de manera continua: debes hacer clic y existe una espera para evitar solicitudes excesivas.
+La interfaz abre normalmente en `http://127.0.0.1:8501`. En **Perfil y fuentes** ajusta los cargos y habilidades; después utiliza **Buscar nuevas ofertas**. Get on Board es la fuente inicial; Remotive y empresas Greenhouse/Lever son opcionales. Las búsquedas ocurren bajo demanda y aplican esperas para limitar consultas.
 
 ## Datos y continuidad entre equipos
 
