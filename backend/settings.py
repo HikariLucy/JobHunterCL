@@ -20,6 +20,7 @@ class AppSettings:
     frontend_dist: Path = ROOT / "frontend" / "dist"
     allowed_hosts: tuple[str, ...] = ("127.0.0.1", "localhost")
     cors_origins: tuple[str, ...] = ("http://127.0.0.1:5173", "http://localhost:5173")
+    cv_max_bytes: int = 1_000_000
     scheduler_enabled: bool = True
     extra: dict = field(default_factory=dict)
 
@@ -40,4 +41,5 @@ def load_settings() -> AppSettings:
     """Lee variables de entorno opcionales (ver .env.example)."""
     data_dir = Path(os.environ.get("JOBHUNTER_DATA_DIR") or ROOT / "data").expanduser().resolve()
     scheduler = os.environ.get("JOBHUNTER_SCHEDULER", "1") not in {"0", "false", "no"}
-    return AppSettings(data_dir=data_dir, scheduler_enabled=scheduler)
+    return AppSettings(data_dir=data_dir, scheduler_enabled=scheduler,
+                       cv_max_bytes=max(1, int(os.environ.get("JOBHUNTER_CV_MAX_BYTES", "1000000"))))

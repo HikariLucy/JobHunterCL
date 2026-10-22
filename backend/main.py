@@ -19,7 +19,7 @@ from jobhunter.storage import STATUSES
 
 from . import __version__
 from . import db as dbmod
-from .routers import jobs, profile, search
+from .routers import cv, jobs, profile, search
 from .services import scheduler
 from .services import search as search_svc
 from .settings import AppSettings, load_settings
@@ -57,7 +57,7 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
     # Protección frente a DNS rebinding: solo se aceptan peticiones dirigidas a la máquina local.
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.allowed_hosts))
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.cors_origins),
-                       allow_methods=["GET", "POST", "PUT", "PATCH"], allow_headers=["Content-Type"])
+                       allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], allow_headers=["Content-Type", "X-CV-Filename", "X-CV-Name", "X-CV-Lang"])
 
     @app.get("/api/health", tags=["sistema"])
     def health():
@@ -69,7 +69,7 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
         return {"status": "ok", "version": __version__, "schema_version": version,
                 "statuses": list(STATUSES), "scheduler": settings.scheduler_enabled}
 
-    for module in (jobs, search, profile):
+    for module in (jobs, search, profile, cv):
         app.include_router(module.router, prefix="/api")
 
     _mount_frontend(app, settings)

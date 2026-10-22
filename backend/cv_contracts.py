@@ -1,7 +1,7 @@
-"""Contratos de la futura integración de CV LaTeX (M2). AÚN SIN IMPLEMENTAR.
+"""Contratos de gestión LaTeX M2.1 y adaptación futura M2.2.
 
-Ver docs/CV_INTEGRACION.md. Este módulo solo fija tipos para que backend,
-frontend y pruebas evolucionen sobre una interfaz estable.
+Ver docs/CV_INTEGRACION.md. La gestión y extracción M2.1 están implementadas;
+los contratos de adaptación M2.2 no ejecutan cambios ni generan documentos.
 
 Principios no negociables:
 - Los .tex viven fuera del repositorio (por defecto `data/cv/`, ignorado por git).
@@ -21,7 +21,7 @@ class CvSource(BaseModel):
     """CV maestro importado desde un .tex local."""
     id: str
     lang: Lang
-    path: str                      # ruta local absoluta; nunca se sube ni se exporta en respaldos
+    path: str = Field(exclude=True)  # clave interna; nunca se serializa en API
     sha256: str                    # detecta cambios del archivo original
     imported_at: str
 
@@ -31,13 +31,36 @@ class CvSection(BaseModel):
     key: str                       # p. ej. "experience[0]", "skills"
     kind: Literal["header", "summary", "experience", "education", "skills", "languages", "projects", "other"]
     text: str                      # texto plano extraído
-    tex_span: tuple[int, int]      # offsets de inicio/fin en el .tex
+    tex_span: tuple[int, int]      # offsets de caracteres Unicode, fuente sin BOM
+    raw_tex: str = ""
+    title: str = ""
+
+
+class CvMetadata(BaseModel):
+    id: str
+    name: str
+    lang: Lang
+    sha256: str
+    imported_at: str
+    updated_at: str
+    size_bytes: int
+    is_primary: bool = False
+
+
+class UninterpretedCv(BaseModel):
+    tex_span: tuple[int, int]
+    raw_tex: str
+    reason: str
 
 
 class ParsedCv(BaseModel):
     source: CvSource
     sections: list[CvSection]
     skills: list[str]
+    source_text: str = ""
+    partial: bool = False
+    warnings: list[str] = Field(default_factory=list)
+    uninterpreted: list[UninterpretedCv] = Field(default_factory=list)
 
 
 class Requirement(BaseModel):
@@ -72,6 +95,7 @@ class Suggestion(BaseModel):
 class TailoringPlan(BaseModel):
     job_id: str
     cv_id: str
+    cv_sha256: str | None = Field(default=None, pattern="^[a-f0-9]{64}$")  # fijar revisión en M2.2
     lang: Lang
     coverage: float = Field(ge=0, le=1)   # proporción de requisitos obligatorios con evidencia
     suggestions: list[Suggestion]
