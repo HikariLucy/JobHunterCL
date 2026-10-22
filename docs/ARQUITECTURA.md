@@ -32,7 +32,7 @@
 |---|---|
 | `settings.py` | Rutas absolutas desde la raíz del repo; variables `JOBHUNTER_*`. |
 | `db.py` | `connect()` reutiliza `storage.connection`; `migrate()` aplica migraciones **solo aditivas** controladas por `PRAGMA user_version`, con copia previa en `data/backups/`. Rechaza esquemas más nuevos que el código. |
-| `schemas.py` | Contratos Pydantic. `Profile` admite claves extra para no perder datos del MVP. |
+| `schemas.py` | Contratos Pydantic de API; reexporta el contrato de perfil compartido de `jobhunter/profile_schema.py`. Las claves heredadas se conservan desde el servidor. |
 | `services/jobs.py` | Puntuar (reutiliza `matching.evaluate`), filtrar, actualizar estado/nota e historial. |
 | `services/search.py` | Búsqueda con candado, espera mínima por fuente, reintentos con backoff y registro en `scan_runs`. |
 | `services/scheduler.py` | Bucle asyncio cada 60 s; ejecuta si vence el intervalo configurado (nunca menor que el mínimo de las fuentes). |
@@ -53,7 +53,8 @@
 | GET | `/api/tracking` | Postulaciones en curso + cambios recientes |
 | GET | `/api/search/status` | Última búsqueda, próxima permitida/programada, ejecuciones |
 | POST | `/api/search` | Búsqueda manual (409 si hay otra en curso; 429 con `Retry-After` en segundos si está en espera — el panel la anticipa con `/api/search/status`) |
-| GET/PUT | `/api/profile` | Perfil |
+| GET/PUT | `/api/profile` | Perfil, validación compartida y escritura atómica |
+| GET | `/api/profile/status` | Existe/legible/error/.bak + plantilla de primera configuración |
 | GET/PUT | `/api/config` | Fuentes + intervalo de búsqueda |
 | GET | `/api/backup/export` | Descarga JSON |
 | POST | `/api/backup/import` | Restaura JSON (cuerpo = contenido del archivo) |
@@ -95,3 +96,7 @@ En desarrollo Vite (5173) reenvía `/api` al backend (8765). En uso normal el ba
 - El backend ya es una app ASGI estándar (`backend.main:app`) configurada por variables de entorno.
 - Para un servidor bastaría: unidad systemd o contenedor, reverse proxy con TLS y **autenticación** (hoy no existe porque solo escucha en loopback), y añadir el dominio a `allowed_hosts`.
 - SQLite basta para un usuario; migrar a PostgreSQL implicaría sustituir `storage`/`db` detrás de los mismos servicios.
+
+## Perfil M1.4
+
+El contrato `jobhunter/profile_schema.py` se comparte entre persistencia, API y respaldos. Así una configuración anidada inválida no reemplaza una copia válida. El asistente y Mi perfil comparten formulario y componentes; el borrador no se escribe hasta confirmar. `jobhunter/preferences.py` añade reglas de modalidad y explicaciones conservadoras de idiomas, remuneración y requisitos; la geografía conserva sus tres estados. La caché incluye perfil completo y contenido/geo de la oferta. Ver [PERFIL.md](PERFIL.md) y [M14_INFORME.md](M14_INFORME.md).

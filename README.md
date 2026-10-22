@@ -60,7 +60,7 @@ Copia `.env.example` a `.env`:
 - **Dashboard:** nuevas coincidencias, embudo de postulaciones, estado de las búsquedas.
 - **Explorar ofertas:** búsqueda, filtros, puntaje explicado, enlace al original, estado y notas. Cada oferta indica si es **elegible** desde tus zonas, si su elegibilidad está **por confirmar** (p. ej. remotas restringidas a países que la fuente no informa; siguen visibles y se filtran con «Elegibilidad → Por confirmar») o si está **fuera de tus zonas**. «Remoto» en tus ubicaciones es una modalidad deseada, no un lugar.
 - **Seguimiento:** postulaciones por estado, notas e historial de cambios.
-- **Mi perfil:** cargos, habilidades, ubicaciones, experiencia, idiomas y preferencias. «Nivel buscado» ajusta la puntuación (vacío = nivel inicial: penaliza Senior y, en menor medida, Semi Senior).
+- **Mi perfil:** asistente opcional de primera ejecución, cargos/áreas, habilidades declaradas y en aprendizaje con evidencia, formación y tipo de experiencia, idiomas y preferencias. Todo puede omitirse y completarse después. «Nivel buscado» ajusta la puntuación (vacío = nivel inicial: penaliza Senior y, en menor medida, Semi Senior).
 - **Configuración:** fuentes, frecuencia de búsqueda, registro de ejecuciones, respaldo/importación.
 
 ## Datos, respaldo y privacidad
@@ -91,8 +91,12 @@ Pruebas:
 cd frontend && npm test && npm run build
 ```
 
+Perfil y recuperación: [docs/PERFIL.md](docs/PERFIL.md) · Validación M1.4: [docs/M14_INFORME.md](docs/M14_INFORME.md) · Propuesta de producto: [docs/PRODUCTO.md](docs/PRODUCTO.md).
+
 Arquitectura: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · Integración futura de CV: [docs/CV_INTEGRACION.md](docs/CV_INTEGRACION.md) · Hitos: [ROADMAP.md](ROADMAP.md).
 
 ## MVP anterior (Streamlit)
 
 Sigue disponible mientras se valida la paridad: `INICIAR-WINDOWS.bat` / `bash iniciar-linux.sh` (usa `launch.py`, puerto 8501). Comparte la misma base de datos; evita usar ambas interfaces a la vez. Sus dependencias están aparte, en `requirements-streamlit.txt` (~290 MB con pandas/pyarrow); esos lanzadores las instalan la primera vez. El panel nuevo no las necesita.
+
+Smoke Linux con datos temporales y sin consultar portales: `.venv/bin/python scripts/smoke_m14.py`. Comparación de ranking sintético contra `614e394`: `.venv/bin/python scripts/eval_m14.py`.

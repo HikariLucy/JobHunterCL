@@ -41,3 +41,11 @@ aceptadas ──render──► .tex adaptado en data/cv/out/ (+ PDF si hay LaTe
 4. Opcional y con aprobación: LLM para reformulación, siempre pasando por `validate_suggestion`.
 
 API prevista: `POST /api/cv/import`, `GET /api/cv`, `POST /api/jobs/{id}/tailor`, `PATCH /api/tailor/{plan}/suggestions/{id}`, `POST /api/tailor/{plan}/render`.
+
+## Revisión M1.4: contratos y UI pendientes
+
+Se mantiene solo diseño; no se importa ningún CV en este hito. El perfil ahora permite tipo de experiencia, formación con estado, aprendizaje y evidencia opcional. Estos datos no sustituyen evidencia literal del maestro `.tex` seleccionado.
+
+Antes de implementar M2 faltan: selector local ES/EN y copia inmutable del maestro, vista previa con offsets y revisión de extracción, separación inequívoca entre título completado/en curso y empleo/proyecto, análisis con requisitos desconocidos, UI de comparación y aprobación individual, validación de spans y de que el archivo no cambió (hash), salida a una copia distinta y PDF opcional detectando LaTeX. No ejecutar comandos LaTeX suministrados por documentos ni sobrescribir originales.
+
+`validate_suggestion` comprueba presencia literal de citas y que un gap no proponga texto; aún no demuestra equivalencia semántica de una reformulación. Esto requiere revisión humana y pruebas antes de generar salidas. El idioma de una oferta remota no debe inferirse solo de su modalidad: la selección ES/EN permanece revisable. No hay API ni UI de CV activas; las rutas listadas arriba son propuestas, y no se incorporan CV al respaldo JSON.

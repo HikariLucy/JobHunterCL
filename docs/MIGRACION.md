@@ -130,3 +130,7 @@ Datos: carpetas temporales fuera del repositorio. `data/jobs.sqlite3` solo se ab
 2. Smoke test de `iniciar-jobhunter.sh` en Ubuntu real.
 3. Liberar espacio en C: de forma duradera y verificar el MVP en limpio si se mantendrá.
 4. M1 según ROADMAP, empezando por los defectos de [ANALISIS_PUNTAJES.md](ANALISIS_PUNTAJES.md).
+
+## Continuación M1.4 (2026-10-21)
+
+Onboarding y perfil extendido conservan el diseño y el MVP. No hay nueva migración SQLite; el perfil sigue siendo JSON compatible. Smoke del lanzador ejecutado realmente en Linux Mint 22.3, base Ubuntu noble, con datos temporales. No equivale a una ejecución en Windows de esta revisión; ver [M14_INFORME.md](M14_INFORME.md).
