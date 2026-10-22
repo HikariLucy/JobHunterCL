@@ -105,4 +105,4 @@ Smoke Linux con datos temporales y sin consultar portales: `.venv/bin/python scr
 
 Gestión LaTeX, límites y seguridad: [docs/CV_INTEGRACION.md](docs/CV_INTEGRACION.md). Informe y capturas sintéticas: [docs/M21_INFORME.md](docs/M21_INFORME.md).
 
-Adaptación local M2.2, contratos, pruebas y capturas sintéticas: [docs/M22_INFORME.md](docs/M22_INFORME.md). PDF aislado corresponde a M2.3.
+Adaptación local M2.2, contratos, pruebas y capturas sintéticas: [docs/M22_INFORME.md](docs/M22_INFORME.md). M2.3 añade capacidades, validación de origen, trazabilidad y mensajes PDF; la compilación permanece bloqueada hasta demostrar aislamiento. Estado y pruebas: [docs/M23_INFORME.md](docs/M23_INFORME.md).

@@ -1,6 +1,6 @@
 # Integración local de currículums LaTeX
 
-M2.1 implementa gestión y extracción textual; M2.2 añade análisis, revisión y copias `.tex` adaptadas locales. PDF corresponde a M2.3; envío queda para fases posteriores.
+M2.1 implementa gestión y extracción textual; M2.2 añade análisis, revisión y copias `.tex` adaptadas locales. M2.3 incorpora infraestructura PDF bloqueada por seguridad; no genera PDFs reales. Envío queda para fases posteriores.
 
 ## Uso
 
@@ -257,3 +257,65 @@ silenciosamente; conservar la carpeta para recuperación manual. No hay todavía
 política/UI de retención o eliminación de planes.
 
 Resultados y capturas sintéticas: [M22_INFORME.md](M22_INFORME.md).
+
+
+## PDF M2.3: infraestructura bloqueada
+
+Después de generar el `.tex`, **PDF privado** muestra disponibilidad, motivos,
+revisión, hash de origen y último intento (si existe). **Generar PDF** está
+explícitamente deshabilitado. La descarga `.tex` continúa funcionando. No hay
+PDF para abrir en el navegador ni descargar en esta versión; no se ofrece un
+visor o enlace que simule disponer de él.
+
+| Método | Ruta bajo `/api/tailoring` | Resultado actual |
+|---|---|---|
+| GET | `/pdf/capabilities` | `available:false`, código, motivos e inventario sin rutas |
+| POST | `/plans/{id}/pdf` | cuerpo estricto `expected_revision`, `expected_tex_sha256`; 503 tras verificar y registrar bloqueo |
+| GET | `/plans/{id}/pdf?expected_revision=N` | estado `not_generated` o `blocked`, diagnósticos y trazabilidad |
+| GET | `/plans/{id}/pdf/download?expected_revision=N` | 409 sin PDF verificado; no devuelve un archivo ficticio |
+
+La solicitud comprueba bajo el bloqueo compartido la instantánea, propuestas,
+revisión, estado generado, hash solicitado, hash real, bytes reconstruidos desde
+las decisiones y gramática del adaptado. Cambios del maestro no sustituyen la
+instantánea; cambios de oferta bloquean nuevas solicitudes. Un plan inexistente
+responde 404, revisión/hash/artefacto alterado 409, cuerpos inválidos 422 y errores
+privados 500. Las respuestas incluyen no-store/nosniff también al fallar. Los
+errores de validación de rutas documentales ya no reflejan los valores enviados.
+
+Cada solicitud íntegra bloqueada conserva `<attempt_uuid>.pdf-audit` inmutable
+y actualiza `<plan_uuid>.pdf-status` atómicamente dentro de `cv/tailoring/`.
+Incluye plan, revisión, hash `.tex`, ID, fecha UTC, estado y diagnósticos sin
+fragmentos personales. Hash PDF, compilador, versión y páginas son **null**.
+No se ejecutó compilador: no se inventa una versión/configuración de ejecución.
+Las lecturas verifican identidad y correspondencia entre estado e historial.
+Después de cambiar decisiones o generar otra revisión, el estado anterior no
+se muestra como actual. El historial se conserva sin eliminación automática;
+no existe aún UI de retención. Sigue fuera de SQLite, respaldos JSON y Git.
+Fallo de commit retira el intento nuevo; interrupción abrupta puede dejar un
+historial huérfano privado sin publicar, conservado para recuperación manual.
+
+`pdf_environment` solo inventaría nombres de herramientas: no ejecuta motores,
+Docker ni pdfinfo. Encontrarlos, cambiar PATH o configurar variables no habilita
+compilación. Los diagnósticos distinguen clase, paquete, macro, entorno, archivo
+externo y estructura no admitida, sin ampliar la gramática M2.2. El endpoint de
+estado puede diagnosticar un plan sin `.tex` generado.
+
+`pdf_validation.inspect_envelope` comprueba únicamente tamaño (defecto 10 MB),
+cabecera/EOF y calcula SHA-256 en memoria. **No es un validador estructural**:
+puede reconocer una envoltura corrupta y devuelve `structurally_verified:false`,
+`pages:null`. No se usa para publicar ni descargar PDF. No se ejecuta pdfinfo
+sobre contenido no confiable fuera de una frontera aislada.
+
+Para habilitar posteriormente: autorización explícita de dependencias; runner
+sin privilegios con namespaces/red/sockets bloqueados, raíz mínima de paquetes
+y fuentes offline de solo lectura, entrada aprobada inmutable, salida privada
+con cuota, CPU/RAM/procesos/tiempo acotados y terminación de todos los hijos;
+pruebas reales de lectura/escritura/red y recursos dentro de esa frontera;
+validador PDF también aislado y publicación atómica con procedencia completa.
+Instalar solo TeX o bubblewrap no basta. No hay instalación automática ni flag
+que eluda esos pasos. Windows continúa bloqueado para almacenamiento CV.
+
+Informe y capturas: [M23_INFORME.md](M23_INFORME.md). Para repetir la revisión
+sintética: compilar frontend y ejecutar `.venv/bin/python scripts/smoke_m23.py`;
+abrir la URL impresa, cancelar el onboarding de prueba si aparece. Ctrl+C cierra
+el servidor y limpia los datos temporales. No utiliza la carpeta de datos real.
