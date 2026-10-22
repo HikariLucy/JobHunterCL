@@ -67,17 +67,25 @@ class Requirement(BaseModel):
     text: str
     kind: Literal["required", "nice_to_have", "unknown"]
     skill: str | None = None
+    category: Literal["technology", "experience", "level", "language", "condition", "other"] = "other"
 
 
 class JobAnalysis(BaseModel):
     job_id: str
     lang: Lang                     # idioma detectado de la oferta → CV a usar
     requirements: list[Requirement]
+    title: str = ""
+    company: str = ""
+    description: str = ""
+    description_sha256: str = ""
+    partial: bool = False
+    warnings: list[str] = Field(default_factory=list)
 
 
 class Evidence(BaseModel):
     section_key: str
-    quote: str = Field(max_length=500)  # cita literal del CV maestro
+    tex_span: tuple[int, int] | None = None
+    quote: str = Field(min_length=1, max_length=500)  # cita literal del CV maestro
 
 
 class Suggestion(BaseModel):
@@ -90,6 +98,15 @@ class Suggestion(BaseModel):
     rationale: str
     evidence: list[Evidence]       # obligatorio salvo en `gap`
     status: Literal["pending", "accepted", "rejected"] = "pending"
+    tex_span: tuple[int, int] | None = None
+    requirement_indices: list[int] = Field(default_factory=list)
+
+
+class EvidenceMatch(BaseModel):
+    requirement_index: int
+    evidence: Evidence
+    confidence: Literal["literal_mention"] = "literal_mention"
+    rationale: str
 
 
 class TailoringPlan(BaseModel):
@@ -99,6 +116,30 @@ class TailoringPlan(BaseModel):
     lang: Lang
     coverage: float = Field(ge=0, le=1)   # proporción de requisitos obligatorios con evidencia
     suggestions: list[Suggestion]
+    id: str = ""
+    revision: int = 1
+    created_at: str = ""
+    updated_at: str = ""
+    state: Literal["review", "generated"] = "review"
+    analysis: JobAnalysis | None = None
+    matches: list[EvidenceMatch] = Field(default_factory=list)
+    blockers: list[str] = Field(default_factory=list)
+    cv_partial: bool = False
+    cv_name: str = ""
+    cv_changed: bool = False
+    job_changed: bool = False
+    artifact_sha256: str | None = None
+    artifact: str | None = None
+
+
+class TailoringPreview(BaseModel):
+    revision: int
+    original: str
+    result: str
+    diff: str
+    sha256: str
+    blockers: list[str]
+    applied: list[str]
 
 
 class CvParser(Protocol):
