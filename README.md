@@ -1,12 +1,14 @@
-# JobHunter CL — MVP local
+# JobHunter CL
 
-Buscador y organizador personal de ofertas laborales para Chile y trabajos remotos. Incluye lectura de fuentes públicas, matching configurable, deduplicación, SQLite, estados y respaldo transferible entre computadores.
+**Buscador y gestor local de oportunidades laborales en Chile y empleos remotos.** Recopila publicaciones desde fuentes públicas, evalúa su afinidad con un perfil editable y permite organizar el seguimiento de postulaciones sin depender de un servicio en la nube.
 
-**Estado:** MVP de búsqueda y seguimiento. **No postula automáticamente**. Los formularios se abren en el portal de origen para revisión humana. No se han validado en vivo las integraciones en la red de tu equipo.
+**Estado de `main`: MVP funcional con Python, Streamlit y SQLite.** Incluye fuentes configurables (Get on Board, Remotive, Greenhouse y Lever), deduplicación, puntuación explicable, notas y estados de seguimiento, además de exportación e importación de respaldos JSON. **No envía postulaciones ni completa formularios automáticamente.** Las integraciones externas requieren una conexión y deben validarse en el entorno de ejecución.
+
+**Evolución en curso:** el panel local **FastAPI + React** se desarrolla en [`feat/local-first-fastapi-react`](https://github.com/HikariLucy/JobHunterCL/tree/feat/local-first-fastapi-react). Sus funciones no deben confundirse con las de `main`. Consulta el README de esa rama para conocer los requisitos y avances del nuevo panel.
 
 ## Windows (PowerShell)
 
-Necesitas **Python 3.11 o superior**, internet y permiso para instalar programas en el PC de trabajo. **Opción fácil:** descomprime **todo** el ZIP, entra en `JobHunter-CL` y haz doble clic en `INICIAR-WINDOWS.bat`. El iniciador comprueba Python 3.11+, crea o reutiliza `.venv`, instala paquetes si faltan, espera a que Streamlit responda y abre el navegador. **Deja la ventana CMD abierta** mientras utilices la aplicación. Si el navegador no aparece, la propia consola imprime la URL `http://127.0.0.1:8501` (u otro puerto libre). Si prefieres la terminal, usa estos comandos:
+Necesitas **Python 3.11 o superior**, conexión a internet para consultar ofertas y permisos para instalar dependencias. **Opción fácil:** descomprime **todo** el ZIP, entra en `JobHunter-CL` y haz doble clic en `INICIAR-WINDOWS.bat`. El iniciador comprueba Python 3.11+, crea o reutiliza `.venv`, instala paquetes si faltan, espera a que Streamlit responda y abre el navegador. **Deja la ventana CMD abierta** mientras utilices la aplicación. Si el navegador no aparece, la propia consola imprime la URL `http://127.0.0.1:8501` (u otro puerto libre). Si prefieres la terminal, usa estos comandos:
 
 ```powershell
 cd "$HOME\Documents"
@@ -32,31 +34,15 @@ python3 -m venv .venv
 
 La interfaz se abre normalmente en http://127.0.0.1:8501 (o el siguiente puerto libre). En la pestaña **Perfil y fuentes** adapta los cargos y habilidades a tu caso. Luego pulsa **Buscar nuevas ofertas**. Get on Board es la fuente inicial; Remotive y compañías de Greenhouse/Lever son opcionales. No se consulta de manera continua: debes hacer clic y existe una espera para evitar solicitudes excesivas.
 
-## Continuar desde casa
+## Datos y continuidad entre equipos
 
-1. No subas `data/`, CV, secretos ni `.venv/` a GitHub; el proyecto los ignora.
-2. Tras crear tu repositorio **privado** de GitHub, envía el código con Git. En casa ejecuta `git clone URL_DEL_REPO` y crea otro entorno virtual.
-3. Si quieres mantener las ofertas y sus estados, usa **Seguimiento → Descargar respaldo JSON** y luego **Importar respaldo** en casa por un canal personal seguro. El respaldo incluye el perfil y puede contener notas privadas; transfiérelo por un canal personal seguro.
+El proyecto guarda el perfil, las ofertas, las notas y los estados **localmente**. El código se puede clonar desde este repositorio público; el seguimiento no se sincroniza por GitHub.
 
-### Repositorio existente: HikariLucy/jobhunter
+1. No subas `data/`, CV, contraseñas, respaldos personales ni `.venv/` al repositorio.
+2. En el segundo equipo, clona `https://github.com/HikariLucy/JobHunterCL.git`, crea un entorno virtual e instala `requirements.txt`.
+3. Usa **Seguimiento → Descargar respaldo JSON** y **Importar respaldo** para trasladar tus ofertas y estados. El JSON puede contener información privada: consérvalo y transfiérelo de forma segura.
 
-Ya existe el repositorio privado [HikariLucy/jobhunter](https://github.com/HikariLucy/jobhunter). **No vuelvas a crearlo.** Puedes clonar el proyecto en otro equipo así:
-
-```powershell
-git clone https://github.com/HikariLucy/jobhunter.git
-cd jobhunter
-.\INICIAR-WINDOWS.bat
-```
-
-Desde Ubuntu:
-
-```bash
-git clone https://github.com/HikariLucy/jobhunter.git ~/proyectos/jobhunter
-cd ~/proyectos/jobhunter
-bash iniciar-linux.sh
-```
-
-GitHub solo guarda el código. El archivo `data/profile.json`, la base de datos y los CV personales **no** se suben. Si necesitas recuperar tus postulaciones, utiliza el respaldo JSON dentro de la pestaña «Seguimiento» y guárdalo de forma privada.
+El MVP Streamlit de `main` no debe ejecutarse a la vez que otra versión que modifique su misma base de datos.
 
 ### Si Windows no abre el panel
 
@@ -83,6 +69,6 @@ En el PC del trabajo, instala dependencias solo si está autorizado por las pol�
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-## Próximos hitos
+## Desarrollo y próximos hitos
 
-Revisar `ROADMAP.md` y `PROMPT_CODEX_CLAUDE.md`. La fase de automatizar formularios es asistida, permitida según cada sitio y con confirmación antes del envío.
+Consulta [ROADMAP.md](ROADMAP.md) y [PROMPT_CODEX_CLAUDE.md](PROMPT_CODEX_CLAUDE.md). Las fases futuras contemplan mejorar el ranking y preparar postulaciones asistidas; cualquier interacción automatizada con portales dependerá de sus condiciones y de la revisión del usuario. Los cambios del panel FastAPI + React aún no forman parte de la versión documentada en este README.
