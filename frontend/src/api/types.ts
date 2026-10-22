@@ -211,3 +211,25 @@ export interface TailoringPlan {
 export interface TailoringPreview {
   revision: number; original: string; result: string; diff: string; sha256: string; blockers: string[]; applied: string[];
 }
+
+export interface PdfCapabilities {
+  available: false;
+  code: 'sandbox_unverified';
+  reasons: string[];
+  detected_tools: string[];
+}
+export interface PdfStatus {
+  plan_id: string;
+  revision: number;
+  status: 'not_generated' | 'blocked';
+  code: 'not_generated' | 'sandbox_unverified';
+  tex_sha256: string | null;
+  attempt_id: string | null;
+  created_at: string | null;
+  pdf_sha256: null;
+  compiler: null;
+  compiler_version: null;
+  pages: null;
+  diagnostics: string[];
+  warnings: string[];
+}

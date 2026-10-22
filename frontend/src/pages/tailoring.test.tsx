@@ -44,3 +44,17 @@ it('plan conservado sigue visible cuando la oferta actual fue eliminada',async()
  expect(screen.getByText(/La oferta cambió. Crea un nuevo plan/)).toBeInTheDocument();
  expect((await screen.findAllByText('Proyecto con Python.')).length).toBeGreaterThan(0);
 });
+
+it('PDF bloqueado explica capacidad ausente y conserva descarga tex',async()=>{
+ const done={...plan,state:'generated',artifact_sha256:preview.sha256};
+ mockFetch({'GET /api/cv':()=>[cv], 'GET /api/tailoring/jobs/job/analysis':()=>analysis,
+ [`GET /api/tailoring/plans/${plan.id}`]:()=>done,
+ [`GET /api/tailoring/plans/${plan.id}/preview`]:()=>preview,
+ 'GET /api/tailoring/pdf/capabilities':()=>({available:false,code:'sandbox_unverified',reasons:['Compilación deshabilitada: aislamiento no verificado.','Herramienta de compilación ausente.'],detected_tools:['bwrap']}),
+ [`GET /api/tailoring/plans/${plan.id}/pdf`]:()=>({plan_id:plan.id,revision:1,status:'not_generated',code:'not_generated',tex_sha256:preview.sha256,diagnostics:[],warnings:[]})});
+ render(<MemoryRouter initialEntries={[`/ofertas/job/adaptar?plan=${plan.id}`]}><Routes><Route path="/ofertas/:jobId/adaptar" element={<TailoringPage/>}/></Routes></MemoryRouter>);
+ expect(await screen.findByRole('button',{name:'Generar PDF'})).toBeDisabled();
+ expect(await screen.findByText(/aislamiento no verificado/)).toBeInTheDocument();
+ expect(screen.getByRole('link',{name:'Descargar .tex adaptado'})).toBeInTheDocument();
+ expect(screen.queryByRole('link',{name:'Descargar PDF'})).not.toBeInTheDocument();
+});

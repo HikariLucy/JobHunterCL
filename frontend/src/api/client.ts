@@ -1,5 +1,5 @@
 import type {
-  CvMetadata, CvPreview, JobAnalysis, TailoringPlan, TailoringPreview, CvSuggestion, AppConfig, Dashboard, Health, HistoryEntry, ImportResult, Job, JobPage, JobQuery,
+  PdfCapabilities, PdfStatus, CvMetadata, CvPreview, JobAnalysis, TailoringPlan, TailoringPreview, CvSuggestion, AppConfig, Dashboard, Health, HistoryEntry, ImportResult, Job, JobPage, JobQuery,
   Profile, ProfileStatus, ScanRun, SearchStatus, Status, Tracking,
 } from "./types";
 
@@ -68,6 +68,11 @@ export function toQuery(params: JobQuery): string {
 const json = (body: unknown) => JSON.stringify(body);
 
 export const api = {
+  pdfCapabilities: () => request<PdfCapabilities>('/tailoring/pdf/capabilities'),
+  pdfStatus: (p: TailoringPlan) => request<PdfStatus>(`/tailoring/plans/${p.id}/pdf?expected_revision=${p.revision}`),
+  generatePdf: (p: TailoringPlan) => request<PdfStatus>(`/tailoring/plans/${p.id}/pdf`, {
+    method: 'POST', body: json({expected_revision:p.revision, expected_tex_sha256:p.artifact_sha256}),
+  }),
   analyzeJob: (id: string) => request<JobAnalysis>(`/tailoring/jobs/${encodeURIComponent(id)}/analysis`),
   createPlan: (job_id: string, cv: CvMetadata, lang: 'es'|'en') => request<TailoringPlan>('/tailoring/plans', {
     method: 'POST', body: json({job_id, cv_id: cv.id, expected_cv_sha256: cv.sha256, lang}),

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
+import { PdfPanel } from '../components/PdfPanel';
 import type { CvSuggestion, JobAnalysis, TailoringPlan, TailoringPreview } from '../api/types';
 import { AsyncView, Card, Empty, ErrorBox, Loading, Notice, PageHeader } from '../components/ui';
 import { useAsync } from '../hooks/useAsync';
@@ -109,8 +110,9 @@ function Workspace({jobId}: {jobId: string}) {
             </>}
             <div className="row wrap"><button className="btn btn-primary" disabled={busy||!preview||preview.revision!==plan.revision||preview.blockers.length>0||plan.job_changed||Boolean(error)} onClick={()=>{if(preview)void run(()=>api.generateCv(plan,preview));}}>Generar CV adaptado</button>
             {plan.state==='generated'&&!busy&&<a className="btn" href={`/api/tailoring/plans/${plan.id}/download`} download>Descargar .tex adaptado</a>}</div>
-            <p className="muted small">Se genera una nueva copia privada .tex. No modifica el maestro ni compila PDF.</p>
+            <p className="muted small">Se genera una nueva copia privada .tex. No modifica el maestro. La disponibilidad de PDF se informa por separado.</p>
           </Card>
+          {plan.state==='generated'&&!busy&&<PdfPanel key={`${plan.id}:${plan.revision}`} plan={plan}/>}
         </>}
       </>}</AsyncView>
       {busy&&<Loading label="Guardando revisión privada…"/>}
