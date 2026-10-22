@@ -264,21 +264,22 @@ def evaluate(job: dict, profile: dict) -> tuple[int, list[str], list[str]]:
     if offer in wanted and affinity:
         score += LEVEL_BONUS[offer]
         positive.append("Nivel inicial indicado" if offer == "inicial" else f"Nivel buscado: {level or offer}")
-    if "senior" not in wanted and (offer == "senior" or senior_title):
-        score -= 48
+    level_penalty = 0
+    if "senior" not in wanted and (offer == "senior" or (offer is None and senior_title)):
+        level_penalty = 48
         warnings.append(f"La fuente indica nivel {level}" if offer == "senior" else "El cargo parece senior/de liderazgo")
     elif offer == "intermedio" and offer not in wanted:
-        score -= 15
+        level_penalty = 15
         warnings.append("Nivel intermedio (Semi Senior): suele pedir experiencia previa")
+    years_penalty = 0
     years = required_years(all_text)
     if years is not None and years >= 5 and "senior" not in wanted:
-        score -= 24
+        years_penalty = 24
         warnings.append("Puede exigir 5 o más años de experiencia")
     elif years is not None and years >= 3 and wanted == {"inicial"}:
-        score -= 12
+        years_penalty = 12
         warnings.append(f"Pide {years} años de experiencia")
-    if any(contains(all_text, k) for k in ("english c1", "ingles avanzado", "fluent english", "native english")):
-        warnings.append("Revisar nivel de inglés exigido")
+    score -= max(level_penalty, years_penalty)
     # Ubicación: solo la elegibilidad confirmada suma; la desconocida avisa sin penalizar.
     elig = eligibility(job, profile)
     if elig["status"] == COMPATIBLE:
@@ -296,4 +297,9 @@ def evaluate(job: dict, profile: dict) -> tuple[int, list[str], list[str]]:
         warnings.append("Ubicación sin confirmar")
     if not positive:
         warnings.append("No se detectaron coincidencias claras con el perfil")
+    from .preferences import preference_effects
+    delta, pref_positive, pref_warnings = preference_effects(job, profile, affinity)
+    score += delta
+    positive.extend(pref_positive)
+    warnings.extend(pref_warnings)
     return max(0, min(100, score)), positive, warnings

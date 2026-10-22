@@ -147,3 +147,12 @@ describe("navegación y páginas", () => {
     expect(JSON.parse(String(put?.[1]?.body)).skills).toEqual(["python", "docker"]);
   });
 });
+
+it('oferta muestra explicaciones de preferencias y brechas sin prometer cumplimiento', async () => {
+  mockFetch({...base, 'GET /api/jobs': () => ({items:[makeJob({warnings:['Idioma requerido: ingles c1; nivel declarado a2 inferior', 'Obligatorio por revisar: Rust · sin coincidencia declarada; brecha por confirmar', 'Remuneración por confirmar: falta rango']})],total:1,stored:1})});
+  renderAt('/ofertas');
+  await userEvent.setup().click(await screen.findByRole('button', {name: /Desarrollador Junior Python/}));
+  expect(await screen.findByText(/nivel declarado a2 inferior/)).toBeInTheDocument();
+  expect(screen.getByText(/brecha por confirmar/)).toBeInTheDocument();
+  expect(screen.getByText(/Remuneración por confirmar/)).toBeInTheDocument();
+});

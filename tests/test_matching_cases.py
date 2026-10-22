@@ -43,9 +43,9 @@ def test_entry_level_it_roles_pass_threshold():
         assert s >= THRESHOLD, (title, s, pos)
 
 
-def test_senior_in_title_is_penalized():
+def test_structured_level_precedes_senior_title():
     s, _, warns = score(job("Senior Backend Engineer", "Python, SQL, Docker, Git.", level="Semi Senior"))
-    assert s < THRESHOLD and SENIOR in warns  # el título manda aunque la fuente diga Semi Senior
+    assert "Nivel intermedio (Semi Senior): suele pedir experiencia previa" in warns and SENIOR not in warns  # M1.4: prevalece nivel estructurado
 
 
 def test_unrelated_commercial_role_stays_low():

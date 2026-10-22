@@ -112,3 +112,20 @@ def test_omitted_legacy_fields_survive_save(client, settings):
     assert response.status_code == 200
     assert response.json()['legacy'] == {'keep': True}
     assert response.json()['sources']['old_source'] == 7
+
+
+def test_preferences_roundtrip_recomputes_explanations(seeded):
+    profile = seeded.get('/api/profile').json()
+    profile['preferences'].update(modalities=['remoto'], salary_min=900000, salary_currency='CLP')
+    profile['languages'] = [{'name':'English','level':'A2','evidence':''}]
+    profile['learning_skills'] = ['rust']
+    assert seeded.put('/api/profile', json=profile).status_code == 200
+    after = seeded.get('/api/profile').json()
+    assert after['preferences']['salary_min'] == 900000
+    item = seeded.get('/api/jobs').json()['items'][0]
+    assert any('Modalidad por confirmar' in w for w in item['warnings'])
+    assert any('Remuneración por confirmar' in w for w in item['warnings'])
+    profile['preferences'].update(modalities=[], salary_min=None)
+    seeded.put('/api/profile', json=profile)
+    item = seeded.get('/api/jobs').json()['items'][0]
+    assert not any('Modalidad por confirmar' in w or 'Remuneración por confirmar' in w for w in item['warnings'])
