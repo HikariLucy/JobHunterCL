@@ -31,7 +31,7 @@ def preference_effects(job: dict, profile: dict, affinity: bool) -> tuple[int, l
     delta = 0
     prefs = profile.get('preferences') or {}
     raw = str(job.get('description') or '')
-    body = norm(raw)
+    body = norm(raw.replace("\n", ";"))
     wanted = set().union(*(_modality(str(m)) for m in prefs.get('modalities') or []))
     geo_mode = (job.get('geo') or {}).get('modality')
     mode = ({_GEO_MODES[geo_mode]} if geo_mode in _GEO_MODES else set()) if geo_mode else _modality(str(job.get('location') or ''))

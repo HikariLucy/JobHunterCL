@@ -83,8 +83,9 @@ def test_ambiguous_or_negated_mode_has_no_bonus(job):
     assert any('Modalidad por confirmar' in w for w in warns)
 
 
-def test_language_markers_do_not_cross_clauses_or_invent_requirements():
-    _, _, warns = run('Linux. English C1 required. French B2 optional.')
+@pytest.mark.parametrize("separator", [". ", "\n", "; "])
+def test_language_markers_do_not_cross_clauses_or_invent_requirements(separator):
+    _, _, warns = run("Linux. English C1 required" + separator + "French B2 optional.")
     assert any('Idioma requerido: english' in w for w in warns)
     assert any('Idioma deseable: french' in w for w in warns)
     _, _, benefit = run('Linux. Ofrecemos curso de inglés B2 gratuito.')
