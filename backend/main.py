@@ -19,7 +19,7 @@ from jobhunter.storage import STATUSES
 
 from . import __version__
 from . import db as dbmod
-from .routers import cv, jobs, profile, search
+from .routers import cv, jobs, profile, search, tailoring
 from .services import scheduler
 from .services import search as search_svc
 from .settings import AppSettings, load_settings
@@ -59,6 +59,14 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.cors_origins),
                        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], allow_headers=["Content-Type", "X-CV-Filename", "X-CV-Name", "X-CV-Lang"])
 
+    @app.middleware("http")
+    async def private_documents(request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith(("/api/cv", "/api/tailoring")):
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+
     @app.get("/api/health", tags=["sistema"])
     def health():
         conn = dbmod.connect(settings.db_path)
@@ -69,7 +77,7 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
         return {"status": "ok", "version": __version__, "schema_version": version,
                 "statuses": list(STATUSES), "scheduler": settings.scheduler_enabled}
 
-    for module in (jobs, search, profile, cv):
+    for module in (jobs, search, profile, cv, tailoring):
         app.include_router(module.router, prefix="/api")
 
     _mount_frontend(app, settings)
