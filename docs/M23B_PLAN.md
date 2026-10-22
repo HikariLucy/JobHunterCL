@@ -23,17 +23,17 @@ sonda fija, nunca salida documental; no se acepta código arbitrario.
 
 ## Pasos
 
-- [ ] Contrato interno inmutable: perfil, hash y requisitos documentales pendientes;
+- [x] Contrato interno inmutable: perfil, hash y requisitos documentales pendientes;
   integrarlo en `pdf_environment` sin cambiar contrato HTTP ni `available:false`.
   Pruebas de perfil y rechazo de habilitación por entorno antes de implementar.
-- [ ] Harness `scripts/audit_sandbox.py`, fixture C estática y pruebas reproducibles.
+- [x] Harness `scripts/audit_sandbox.py`, fixture C estática y pruebas reproducibles.
   Ejecutar primero sonda básica; si falla, detener las demás y declarar pendiente.
   Probar lectura/escritura, red contra listener local sintético, sockets UNIX de
   fixture, rlimits acotados, cuota tmpfs y un solo descendiente con setsid.
   No fork bombs, conexiones externas, TeX ni documentos personales.
-- [ ] Ejecutar la auditoría dentro y fuera de Codex, registrar resultados y hashes.
+- [x] Ejecutar la auditoría dentro y fuera de Codex, registrar resultados y hashes.
   Fallos de capacidad se informan como bloqueados, sin fallback al anfitrión.
-- [ ] pytest completo, Vitest, typecheck, build, diff --check; revisión de cambios,
+- [x] pytest completo, Vitest, typecheck, build, diff --check; revisión de cambios,
   informe `M23B_INFORME.md`, commits locales pequeños.
 
 ## Revisión y límites
@@ -51,3 +51,9 @@ Decisión de auditoría: NPROC inicial 512 impedía crear namespaces porque el h
 tenía 1539 hilos del mismo UID. Se cambia a 4096, verificable pero insuficiente
 como límite por trabajo; cgroup pids.max sigue pendiente. Dentro de Codex la
 creación de sockets de fixture falla EPERM; declarar capacidad ausente.
+
+Verificación final: 307 pytest sin omisiones en host, 47 Vitest, typecheck/build y
+diff --check correctos. Ocho sondas host pasan; dentro de Codex cero sondas por
+capacidad ausente con limpieza demostrada. Revisión independiente corrigió skips
+demasiado amplios mediante pruebas de errores desconocidos; informe y JSON en
+`docs/M23B_INFORME.md` y `docs/evidencias/m23b/`. No se acredita seguridad documental.

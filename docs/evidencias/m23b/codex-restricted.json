@@ -1,0 +1,79 @@
+{
+  "at_utc": "2026-10-22T03:32:05.053065+00:00",
+  "checks": {
+    "basic": {
+      "status": "pending"
+    },
+    "cpu": {
+      "status": "pending"
+    },
+    "descendant": {
+      "status": "pending"
+    },
+    "filesystem": {
+      "status": "pending"
+    },
+    "limits": {
+      "status": "pending"
+    },
+    "network": {
+      "status": "pending"
+    },
+    "quota": {
+      "status": "pending"
+    },
+    "timeout": {
+      "status": "pending"
+    }
+  },
+  "document_verified": false,
+  "harness_sha256": "4865f8b32e79fe58531a130cc3d31921d00a71561945a768691985339f0e409a",
+  "pending_document_controls": [
+    "document_runner",
+    "closed_offline_tex_tree",
+    "aggregate_resources",
+    "seccomp_policy",
+    "document_output_validation",
+    "m23c_synthetic_documents"
+  ],
+  "platform": {
+    "machine": "x86_64",
+    "node": "hikariPC",
+    "release": "7.0.0-31-generic",
+    "system": "Linux",
+    "version": "#31~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Mon Aug 10 09:38:02 UTC 2"
+  },
+  "probe_sha256": "cb75d8c1e41cdf583e24b07c2910e331ca272c603e53c038371b29614c4fc2bf",
+  "profile": {
+    "address_space_bytes": 134217728,
+    "cpu_seconds": 2,
+    "descriptors": 64,
+    "file_bytes": 2097152,
+    "namespaces": [
+      "user",
+      "pid",
+      "net",
+      "ipc",
+      "uts",
+      "cgroup"
+    ],
+    "output_bytes": 1048576,
+    "processes_per_uid": 4096,
+    "version": "m23b-synthetic-v1",
+    "wall_seconds": 3
+  },
+  "profile_sha256": "12d7240ca6e3815e77af7e4255e505e8a13c1d0cfa87d842c6820823cf47dcd3",
+  "reason": "fixture_socket_unavailable",
+  "schema": 1,
+  "source_sha256": "19550a2cbf56acd035eb125e2d4a8af0206a1a99e15aba149a057df3e1b16e67",
+  "status": "blocked",
+  "synthetic_only": true,
+  "temporary_directory": "/tmp/jobhunter-synthetic-mdowu6ml",
+  "temporary_directory_removed": true,
+  "tool_sha256": {
+    "/usr/bin/bwrap": "52231e1caf55bcbc667b269f49c63599a6f7db4767ae6a039580d0ff853db712",
+    "/usr/bin/cc": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+    "/usr/bin/prlimit": "17064f67e650d6152a6902b013aab496b54c87587c8eea6f5023aafee6154069",
+    "/usr/bin/readelf": "64c58e15274bbbb5153f31078e455e9e77ee5f51489e709bba5bb788ce9df2b0"
+  }
+}
